@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {               
+  id              Int                 @id @unique
+  name            String
+  subname         String?
+  productCategory String
+  kcal            Float?
+  protein         Float?
+  fat             Float?
+  carbohydrate    Float?
+  fiber           Float?
+  sugar           Float?
+  ash             Float?
+  starch          Float?
+  calcium         Float?
+  iron            Float?
+  magnesium       Float?
+  phosphorus      Float?
+  potassium       Float?
+  sodium          Float?
+  zinc            Float?
+  copper          Float?
+  manganese       Float?
+  selenium        Float?
+  vitamin_a       Float?
+  vitamin_b3      Float?
+  vitamin_b4      Float?
+  vitamin_b5      Float?
+  vitamin_b6      Float?
+  vitamin_b9      Float?
+  vitamin_c       Float?
+  vitamin_e       Float?
+  vitamin_k       Float?
+  alpha_carotene  Float?
+  beta_carotene   Float?
+  chole           Float?
+  trans           Float?
+  water           Float?
+  clearWeights    ProductClearWeight[]
+  measures        ProductMeasure[]
+}
+
+model ProductClearWeight {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  name        String
+  value       Float
+  desc        String
+  product     Product @relation(fields: [productId], references: [id])
+}
+
+model ProductMeasure {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  name        String
+  value       Float
+  desc        String
+  product     Product @relation(fields: [productId], references: [id])
+}
