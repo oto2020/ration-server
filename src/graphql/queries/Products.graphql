@@ -1,0 +1,29 @@
+query getAllProducts {
+  products {
+    id
+    name
+    subname
+    productCategory
+    kcal
+    protein
+    fat
+    carbohydrate
+    measures {
+      name
+      value
+      desc
+    }
+    clearWeights {
+      name
+      value
+      desc
+    }
+  }
+}
+
+mutation createProduct($input: CreateProductInput!) {
+  createProduct(input: $input) {
+    id
+    name
+  }
+}
