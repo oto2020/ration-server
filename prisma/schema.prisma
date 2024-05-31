@@ -1,67 +1,70 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-model Product {               
-  id              Int                 @id @unique
-  name            String
-  subname         String?
-  productCategory String
-  kcal            Float?
-  protein         Float?
-  fat             Float?
-  carbohydrate    Float?
-  fiber           Float?
-  sugar           Float?
-  ash             Float?
-  starch          Float?
-  calcium         Float?
-  iron            Float?
-  magnesium       Float?
-  phosphorus      Float?
-  potassium       Float?
-  sodium          Float?
-  zinc            Float?
-  copper          Float?
-  manganese       Float?
-  selenium        Float?
-  vitamin_a       Float?
-  vitamin_b3      Float?
-  vitamin_b4      Float?
-  vitamin_b5      Float?
-  vitamin_b6      Float?
-  vitamin_b9      Float?
-  vitamin_c       Float?
-  vitamin_e       Float?
-  vitamin_k       Float?
-  alpha_carotene  Float?
-  beta_carotene   Float?
-  chole           Float?
-  trans           Float?
-  water           Float?
-  clearWeights    ProductClearWeight[]
-  measures        ProductMeasure[]
+generator client {
+  provider = "prisma-client-js"
 }
 
-model ProductClearWeight {
+model Product {
+  id               Int     @id @default(autoincrement())
+  productCategory  String
+  name             String
+  subname          String?
+  kcal             Float
+  mainFats         Float
+  mainProteins     Float
+  mainCarb         Float
+  mainWater        Float
+  mainAsh          Float
+  subSugar         Float?
+  subFiber         Float?
+  subStarch        Float?
+  subTransfats     Float?
+  vitamin_a        Float?
+  beta_carotene    Float?
+  alpha_carotene   Float?
+  vitamin_e        Float?
+  vitamin_k        Float?
+  vitamin_c        Float?
+  vitamin_b1       Float?
+  vitamin_b3       Float?
+  vitamin_b4       Float?
+  vitamin_b5       Float?
+  vitamin_b6       Float?
+  vitamin_b9       Float?
+  vitamin_b12      Float?
+  vitamin_b2       Float?
+  vitamin_d        Float?
+  vitamin_d2       Float?
+  vitamin_d3       Float?
+  calcium          Float?
+  fluoride         Float?
+  iron             Float?
+  magnesium        Float?
+  phosphorus       Float?
+  potassium        Float?
+  sodium           Float?
+  zinc             Float?
+  copper           Float?
+  manganese        Float?
+  selenium         Float?
+  wasteWeightValue Float   @default(1.0)
+  wasteWeightDesc  String  @default("Продукт в чистом виде")
+  Measures         Measure[]
+  
+  @@unique([name, subname])
+  @@map("products")
+}
+
+model Measure {
   id          Int     @id @default(autoincrement())
   productId   Int
   name        String
   value       Float
   desc        String
   product     Product @relation(fields: [productId], references: [id])
-}
-
-model ProductMeasure {
-  id          Int     @id @default(autoincrement())
-  productId   Int
-  name        String
-  value       Float
-  desc        String
-  product     Product @relation(fields: [productId], references: [id])
+  
+  @@map("measures")
 }
