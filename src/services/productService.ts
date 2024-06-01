@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Создание продукта
 export const createNewProduct = async (productData: any) => {
   return prisma.product.create({
     data: {
@@ -13,6 +14,7 @@ export const createNewProduct = async (productData: any) => {
   });
 };
 
+// Получение всех продуктов (все поля)
 export const fetchProducts = async () => {
   return prisma.product.findMany({
     include: {
@@ -21,6 +23,7 @@ export const fetchProducts = async () => {
   });
 };
 
+// Получение всех продуктов (только главные поля)
 export const fetchProductsMainFields = async () => {
   return prisma.product.findMany({
     select: {
@@ -33,11 +36,13 @@ export const fetchProductsMainFields = async () => {
       mainCarb: true,
       mainWater: true,
       mainAsh: true,
+      kcal: true,
       Measures: true,
     }
   });
 };
 
+// Поиск продуктов (только главные поля) по текстовым полям с приоритезацией 
 export const searchProductsMainFields = async (searchString: string) => {
   const lowerCaseSearchString = searchString.toLowerCase();
 
@@ -53,6 +58,7 @@ export const searchProductsMainFields = async (searchString: string) => {
       mainCarb: true;
       mainWater: true;
       mainAsh: true;
+      kcal: true;
       Measures: true;
     };
   }>;
@@ -69,6 +75,7 @@ export const searchProductsMainFields = async (searchString: string) => {
       mainCarb: true,
       mainWater: true,
       mainAsh: true,
+      kcal: true,
       Measures: true,
     },
     where: {
