@@ -52,6 +52,7 @@ model Product {
   selenium         Float?
   wasteWeightValue Float   @default(1.0)
   wasteWeightDesc  String  @default("Продукт в чистом виде")
+  isDeleted        Boolean @default(false)
   Measures         Measure[]
   
   @@unique([name, subname])

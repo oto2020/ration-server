@@ -1,5 +1,14 @@
 import { Request, Response } from 'express';
-import { createNewProduct, fetchProducts, fetchProductsMainFields, searchProductsMainFields } from '../services/productService';
+import {
+  createNewProduct, 
+  fetchProducts, 
+  fetchProductById,
+  fetchProductCategories,
+  updateProduct,
+  deleteProduct,
+  fetchProductsMainFields, 
+  searchProductsMainFields
+} from '../services/productService';
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
@@ -27,6 +36,69 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     res.status(200).json(products);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
+  }
+};
+
+
+
+export const getProductCategories = async (req: Request, res: Response) => {
+  try {
+    let productCategories = await fetchProductCategories();
+    res.status(200).json(productCategories);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
+  }
+};
+
+
+export const getProductById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const product = await fetchProductById(Number(id));
+    if (product) {
+      res.status(200).json(product);
+    } else {
+      res.status(404).json({ error: 'Product not found' });
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
+  }
+};
+
+export const updateProductById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const productData = req.body;
+    const updatedProduct = await updateProduct(Number(id), productData);
+    res.status(200).json(updatedProduct);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
+  }
+};
+
+export const deleteProductById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await deleteProduct(Number(id));
+    res.status(204).send();
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ error: error.message });
