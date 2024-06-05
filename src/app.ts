@@ -1,14 +1,14 @@
 import express from 'express';
-import bodyParser from 'body-parser';
 import { productRoutes } from './routes/productRoutes';
+import { dishRoutes } from './routes/dishRoutes';
 
 const app = express();
 
-app.use(bodyParser.json());
+app.use(express.json());
 app.use('/api/products', productRoutes);
+app.use('/api/dishes', dishRoutes);
 
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

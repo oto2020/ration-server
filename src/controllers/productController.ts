@@ -11,6 +11,7 @@ import {
 } from '../services/productService';
 
 export const createProduct = async (req: Request, res: Response) => {
+  console.log(`createProduct`);
   try {
     const productData = req.body;
     const newProduct = await createNewProduct(productData);
@@ -25,6 +26,7 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 export const getProducts = async (req: Request, res: Response) => {
+  console.log(`getProducts`);
   try {
     const { mode, search } = req.query;
 
@@ -48,6 +50,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
 
 export const getProductCategories = async (req: Request, res: Response) => {
+  console.log(`getProductCategories`);
   try {
     let productCategories = await fetchProductCategories();
     res.status(200).json(productCategories);
@@ -62,6 +65,7 @@ export const getProductCategories = async (req: Request, res: Response) => {
 
 
 export const getProductById = async (req: Request, res: Response) => {
+  console.log(`getProductById`);
   try {
     const { id } = req.params;
     const product = await fetchProductById(Number(id));
@@ -80,6 +84,7 @@ export const getProductById = async (req: Request, res: Response) => {
 };
 
 export const updateProductById = async (req: Request, res: Response) => {
+  console.log(`updateProductById`);
   try {
     const { id } = req.params;
     const productData = req.body;
@@ -95,6 +100,7 @@ export const updateProductById = async (req: Request, res: Response) => {
 };
 
 export const deleteProductById = async (req: Request, res: Response) => {
+  console.log(`deleteProductById`);
   try {
     const { id } = req.params;
     await deleteProduct(Number(id));

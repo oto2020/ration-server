@@ -54,7 +54,7 @@ model Product {
   wasteWeightDesc  String  @default("Продукт в чистом виде")
   isDeleted        Boolean @default(false)
   Measures         Measure[]
-  
+
   @@unique([name, subname])
   @@map("products")
 }
@@ -66,6 +66,26 @@ model Measure {
   value       Float
   desc        String
   product     Product @relation(fields: [productId], references: [id])
-  
+  DishMeasures DishMeasure[]
+
   @@map("measures")
 }
+
+model Dish {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String
+  measures    DishMeasure[]
+}
+
+model DishMeasure {
+  id         Int      @id @default(autoincrement())
+  dishId     Int
+  measureId  Int
+  value      Float
+  dish       Dish     @relation(fields: [dishId], references: [id])
+  measure    Measure  @relation(fields: [measureId], references: [id])
+
+  @@map("dish_measures")
+}
+
