@@ -1,5 +1,6 @@
 // src/services/productService.ts
 import { PrismaClient, Prisma } from '@prisma/client';
+import { productFields } from './productFields';
 
 const prisma = new PrismaClient();
 
@@ -85,11 +86,9 @@ export const createNewProduct = async (productData: ProductData) => {
 };
 
 // Получение всех продуктов (все поля)
-export const fetchProducts = async () => {
+export const fetchProducts = async (mode: string) => {
   return prisma.product.findMany({
-    include: {
-      Measures: true
-    }
+    select: productFields[mode] || productFields['full']
   });
 };
 
@@ -109,10 +108,10 @@ export const fetchProductCategories = async () => {
 };
 
 // Получение продукта по id
-export const fetchProductById = async (id: number) => {
+export const fetchProductById = async (id: number, mode: string) => {
   return prisma.product.findUnique({
     where: { id },
-    include: { Measures: true },
+    select: productFields[mode] || productFields['full']
   });
 };
 
@@ -161,64 +160,14 @@ export const deleteProduct = async (id: number) => {
   });
 };
 
-// Получение всех продуктов (только главные поля)
-export const fetchProductsMainFields = async () => {
-  return prisma.product.findMany({
-    select: {
-      id: true,
-      productCategory: true,
-      name: true,
-      subname: true,
-      mainFats: true,
-      mainProteins: true,
-      mainCarb: true,
-      mainWater: true,
-      mainAsh: true,
-      kcal: true,
-      isDeleted: true,
-      Measures: true,
-    }
-  });
-};
 
 // Поиск продуктов (только главные поля) по текстовым полям с приоритезацией 
-export const searchProductsMainFields = async (searchString: string) => {
+export const searchProducts = async (searchString: string, mode: string) => {
   const lowerCaseSearchString = searchString.toLowerCase();
 
-  // Определение типа результата запроса
-  type ProductType = Prisma.ProductGetPayload<{
-    select: {
-      id: true;
-      productCategory: true;
-      name: true;
-      subname: true;
-      mainFats: true;
-      mainProteins: true;
-      mainCarb: true;
-      mainWater: true;
-      mainAsh: true;
-      kcal: true;
-      isDeleted: true;
-      Measures: true;
-    };
-  }>;
-
   // Выполнение единственного запроса с объединением всех условий
-  const results: ProductType[] = await prisma.product.findMany({
-    select: {
-      id: true,
-      productCategory: true,
-      name: true,
-      subname: true,
-      mainFats: true,
-      mainProteins: true,
-      mainCarb: true,
-      mainWater: true,
-      mainAsh: true,
-      kcal: true,
-      isDeleted: true,
-      Measures: true,
-    },
+  const results = await prisma.product.findMany({
+    select: productFields[mode] || productFields['full'],
     where: {
       OR: [
         { name: { startsWith: lowerCaseSearchString } },
@@ -233,13 +182,13 @@ export const searchProductsMainFields = async (searchString: string) => {
 
   // Сортировка результатов по приоритету
   const sortedResults = results.sort((a, b) => {
-    const getPriority = (product: ProductType) => {
-      if (product.name.toLowerCase().startsWith(lowerCaseSearchString)) return 1;
-      if (product.subname?.toLowerCase().startsWith(lowerCaseSearchString)) return 2;
-      if (product.productCategory.toLowerCase().startsWith(lowerCaseSearchString)) return 3;
-      if (product.name.toLowerCase().includes(lowerCaseSearchString)) return 4;
-      if (product.subname?.toLowerCase().includes(lowerCaseSearchString)) return 5;
-      if (product.productCategory.toLowerCase().includes(lowerCaseSearchString)) return 6;
+    const getPriority = (product: any) => {
+      if (typeof product.name === 'string' && product.name.toLowerCase().startsWith(lowerCaseSearchString)) return 1;
+      if (typeof product.subname === 'string' && product.subname.toLowerCase().startsWith(lowerCaseSearchString)) return 2;
+      if (typeof product.productCategory === 'string' && product.productCategory.toLowerCase().startsWith(lowerCaseSearchString)) return 3;
+      if (typeof product.name === 'string' && product.name.toLowerCase().includes(lowerCaseSearchString)) return 4;
+      if (typeof product.subname === 'string' && product.subname.toLowerCase().includes(lowerCaseSearchString)) return 5;
+      if (typeof product.productCategory === 'string' && product.productCategory.toLowerCase().includes(lowerCaseSearchString)) return 6;
       return 7;
     };
     return getPriority(a) - getPriority(b);

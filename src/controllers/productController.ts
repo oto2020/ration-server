@@ -6,8 +6,7 @@ import {
   fetchProductCategories,
   updateProduct,
   deleteProduct,
-  fetchProductsMainFields, 
-  searchProductsMainFields
+  searchProducts
 } from '../services/productService';
 
 export const createProduct = async (req: Request, res: Response) => {
@@ -26,17 +25,12 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 export const getProducts = async (req: Request, res: Response) => {
-  console.log(`getProducts`);
   try {
-    const { mode, search } = req.query;
-
-    let products;
-    if (mode === "mainFields") {
-      products = search ? await searchProductsMainFields(search as string) : await fetchProductsMainFields();
-    } else {
-      products = await fetchProducts();
-    }
-
+    const mode = (req.query.mode as string) || 'full';
+    const search = req.query.search as string;
+    
+    console.log(`getProducts ${mode} ${search}`);
+    let products = search ? await searchProducts(search as string, mode) : await fetchProducts(mode);
     res.status(200).json(products);
   } catch (error) {
     if (error instanceof Error) {
@@ -68,7 +62,8 @@ export const getProductById = async (req: Request, res: Response) => {
   console.log(`getProductById`);
   try {
     const { id } = req.params;
-    const product = await fetchProductById(Number(id));
+    const mode = (req.query.mode as string) || 'full';
+    const product = await fetchProductById(Number(id), mode);
     if (product) {
       res.status(200).json(product);
     } else {

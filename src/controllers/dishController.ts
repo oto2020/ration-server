@@ -31,7 +31,8 @@ export const createDishByMeasureId = async (req: Request, res: Response) => {
   
 export const getDishes = async (req: Request, res: Response) => {
   try {
-    const dishes = await fetchDishes();
+    const mode = (req.query.mode as string) || 'full';
+    const dishes = await fetchDishes(mode);
     res.status(200).json(dishes);
   } catch (error) {
     if (error instanceof Error) {

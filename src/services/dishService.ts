@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { productFields } from './productFields';
 
 const prisma = new PrismaClient();
 
@@ -21,7 +22,7 @@ type DishDataByMeasureId = {
 type DishDataByProductId = {
   name: string;
   description: string;
-  measures: DishMeasureInputByProductId[];
+  products: DishMeasureInputByProductId[];
 };
 
 // Создание блюда с measureId
@@ -46,26 +47,26 @@ export const createByMeasureId = async (dishData: DishDataByMeasureId) => {
 
 // Создание блюда с productId
 export const createByProductId = async (dishData: DishDataByProductId) => {
-  if (!Array.isArray(dishData.measures)) {
-    throw new Error("measures must be an array");
+  if (!Array.isArray(dishData.products)) {
+    throw new Error("products must be an array");
   }
 
   // Получение measureId для каждого продукта, где name == "грамм"
-  const measuresWithGram = await Promise.all(dishData.measures.map(async (measure) => {
+  const measuresWithGram = await Promise.all(dishData.products.map(async (product) => {
     const gramMeasure = await prisma.measure.findFirst({
       where: {
-        productId: measure.productId,
+        productId: product.productId,
         name: 'грамм'
       }
     });
 
     if (!gramMeasure) {
-      throw new Error(`Measure with name 'грамм' not found for productId ${measure.productId}`);
+      throw new Error(`Measure with name 'грамм' not found for productId ${product.productId}`);
     }
 
     return {
       measureId: gramMeasure.id,
-      value: measure.value
+      value: product.value
     };
   }));
 
@@ -83,12 +84,18 @@ export const createByProductId = async (dishData: DishDataByProductId) => {
   });
 };
 
-export const fetchDishes = async () => {
+export const fetchDishes = async (mode: string) => {
   return prisma.dish.findMany({
     include: {
       measures: {
         include: {
-          measure: true,
+          measure: {
+            include: {
+              product: {
+                select: productFields[mode] || productFields['full']
+              }
+            }
+          }
         },
       },
     },
@@ -130,26 +137,26 @@ export const updateByMeasureId = async (id: number, dishData: DishDataByMeasureI
 };
 
 export const updateByProductId = async (id: number, dishData: DishDataByProductId) => {
-  if (!Array.isArray(dishData.measures)) {
+  if (!Array.isArray(dishData.products)) {
     throw new Error("measures must be an array");
   }
 
   // Получение measureId для каждого продукта, где name == "грамм"
-  const measuresWithGram = await Promise.all(dishData.measures.map(async (measure) => {
+  const measuresWithGram = await Promise.all(dishData.products.map(async (product) => {
     const gramMeasure = await prisma.measure.findFirst({
       where: {
-        productId: measure.productId,
+        productId: product.productId,
         name: 'грамм'
       }
     });
 
     if (!gramMeasure) {
-      throw new Error(`Measure with name 'грамм' not found for productId ${measure.productId}`);
+      throw new Error(`Measure with name 'грамм' not found for productId ${product.productId}`);
     }
 
     return {
       measureId: gramMeasure.id,
-      value: measure.value
+      value: product.value
     };
   }));
 
