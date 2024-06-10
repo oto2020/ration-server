@@ -1,8 +1,10 @@
 import express from 'express';
+import cors from 'cors';
 import { productRoutes } from './routes/productRoutes';
 import { dishRoutes } from './routes/dishRoutes';
 
 const app = express();
+app.use(cors()); // Вызываем функцию cors, чтобы разрешить все адреса
 
 app.use(express.json());
 app.use('/api/products', productRoutes);
