@@ -43,10 +43,12 @@ export const getDishes = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getDishById = async (req: Request, res: Response) => {
   try {
+    const mode = (req.query.mode as string) || 'full';
     const { id } = req.params;
-    const dish = await fetchDishById(Number(id));
+    const dish = await fetchDishById(Number(id), mode);
     if (dish) {
       res.status(200).json(dish);
     } else {

@@ -11,7 +11,7 @@ type Measure = {
 };
 
 type ProductData = {
-  productCategory: string;
+  categoryname: string;
   name: string;
   subname?: string;
   kcal: number;
@@ -95,15 +95,15 @@ export const fetchProducts = async (mode: string) => {
 // Получение категорий продуктов и количества продуктов, относящихся к категории
 export const fetchProductCategories = async () => {
   const categories = await prisma.product.groupBy({
-    by: ['productCategory'],
+    by: ['categoryname'],
     _count: {
-      productCategory: true,
+      categoryname: true,
     },
   });
 
   return categories.map(category => ({
-    category: category.productCategory,
-    count: category._count.productCategory,
+    category: category.categoryname,
+    count: category._count.categoryname,
   }));
 };
 
@@ -172,10 +172,10 @@ export const searchProducts = async (searchString: string, mode: string) => {
       OR: [
         { name: { startsWith: lowerCaseSearchString } },
         { subname: { startsWith: lowerCaseSearchString } },
-        { productCategory: { startsWith: lowerCaseSearchString } },
+        { categoryname: { startsWith: lowerCaseSearchString } },
         { name: { contains: lowerCaseSearchString } },
         { subname: { contains: lowerCaseSearchString } },
-        { productCategory: { contains: lowerCaseSearchString } },
+        { categoryname: { contains: lowerCaseSearchString } },
       ],
     },
   });
@@ -185,10 +185,10 @@ export const searchProducts = async (searchString: string, mode: string) => {
     const getPriority = (product: any) => {
       if (typeof product.name === 'string' && product.name.toLowerCase().startsWith(lowerCaseSearchString)) return 1;
       if (typeof product.subname === 'string' && product.subname.toLowerCase().startsWith(lowerCaseSearchString)) return 2;
-      if (typeof product.productCategory === 'string' && product.productCategory.toLowerCase().startsWith(lowerCaseSearchString)) return 3;
+      if (typeof product.categoryname === 'string' && product.categoryname.toLowerCase().startsWith(lowerCaseSearchString)) return 3;
       if (typeof product.name === 'string' && product.name.toLowerCase().includes(lowerCaseSearchString)) return 4;
       if (typeof product.subname === 'string' && product.subname.toLowerCase().includes(lowerCaseSearchString)) return 5;
-      if (typeof product.productCategory === 'string' && product.productCategory.toLowerCase().includes(lowerCaseSearchString)) return 6;
+      if (typeof product.categoryname === 'string' && product.categoryname.toLowerCase().includes(lowerCaseSearchString)) return 6;
       return 7;
     };
     return getPriority(a) - getPriority(b);

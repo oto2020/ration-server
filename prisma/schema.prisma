@@ -9,9 +9,9 @@ generator client {
 
 model Product {
   id               Int     @id @default(autoincrement())
-  productCategory  String
   name             String
   subname          String?
+  categoryname     String?
   kcal             Float
   mainFats         Float
   mainProteins     Float

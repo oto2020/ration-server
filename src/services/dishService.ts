@@ -3,6 +3,24 @@ import { productFields } from './productFields';
 
 const prisma = new PrismaClient();
 
+// Определение типов для вложенных объектов
+type MeasureType = {
+  value: number;
+  measure: {
+    name: string;
+    desc: string;
+    value: number;
+    product: any; // Вы можете определить более точный тип для продукта, если необходимо
+  };
+};
+
+type DishType = {
+  id: number;
+  name: string;
+  description: string;
+  measures: MeasureType[];
+};
+
 type DishMeasureInputByMeasureId = {
   measureId: number;
   value: number;
@@ -85,7 +103,7 @@ export const createByProductId = async (dishData: DishDataByProductId) => {
 };
 
 export const fetchDishes = async (mode: string) => {
-  return prisma.dish.findMany({
+  let dishes = await prisma.dish.findMany({
     include: {
       measures: {
         include: {
@@ -100,19 +118,81 @@ export const fetchDishes = async (mode: string) => {
       },
     },
   });
+
+  console.log(dishes);
+
+  return dishes; 
 };
 
-export const fetchDishById = async (id: number) => {
-  return prisma.dish.findUnique({
+
+
+export const fetchDishById = async (id: number, mode: string) => {
+  let dish = await prisma.dish.findUnique({
     where: { id },
     include: {
       measures: {
         include: {
-          measure: true,
+          measure: {
+            include: {
+              product: {
+                select: productFields['dishServiceFetchProductFields'] || productFields['full']
+              }
+            }
+          }
         },
       },
     },
+  }) as DishType | null;;
+
+
+  // Перечисление всех числовых полей, над которыми будут совершаться вычисления
+  const calcFields = Object.keys(productFields['dishServiceFetchProductFields']).filter(
+    key => !['id', 'name', 'subname', 'categoryname', 'isDeleted', 'wasteWeightDesc', 'wasteWeightValue'].includes(key)
+  );
+
+  // Инициализация объекта для хранения суммарных значений
+  let totals: any = {};
+  calcFields.forEach(field => {
+    totals[field] = 0;
   });
+  let weight = 0;
+
+  let productsTable = dish==null?[]:dish.measures.map(m => {
+    // количество единицы измерения (сколько стаканов, сколько грамм и тд.)
+    let measureCount = m.value;
+    // название единицы измерения
+    let measureName = m.measure.name;
+    // описание единицы измерения
+    let measureDesc = m.measure.desc;
+    // коэффициент единицы измерения, нормирующий measurment в граммы
+    let measureValue = m.measure.value;
+    // продукт
+    let product = m.measure.product;
+    // Вес продукта в граммах
+    product.weight = measureCount*measureValue*100;
+    // коэффициент веса продукта с отходами
+    let wasteWeightValue = product.wasteWeightValue;
+    let wasteWeightDesc = product.wasteWeightDesc;
+    // Вес продукта с учетом веса отходов
+    let productWasteWeight = product.weight * wasteWeightValue;
+
+    console.log(`${product.name}, ${measureCount} ${measureName} ${measureDesc} = ${product.weight.toFixed(2)} г. / ${productWasteWeight.toFixed(2)} г. (${wasteWeightDesc})`);
+    
+    // Подсчет суммарных значений для каждого числового поля
+    calcFields.forEach(field => {
+      if (product[field] !== undefined) {
+        totals[field] += (product[field] * product.weight / 100);
+      }
+    });
+    weight += product.weight;
+  })
+  console.log(`Общий вес блюда: ${weight}`);
+  const totalsNormalized = calcFields.reduce((acc, field) => {
+    acc[field] = (totals[field] * 100 / weight);
+    return acc;
+  }, {} as any);
+  console.log(`Характеристики блюда на 100г. продукта:`, totalsNormalized);
+  return dish;
 };
 
 export const updateByMeasureId = async (id: number, dishData: DishDataByMeasureId) => {
