@@ -1,4 +1,4 @@
-
+// src/services/productFields.ts
 
 // Объект для хранения всех конфигураций
 export const productFields: { [key: string]: any } = {

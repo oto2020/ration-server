@@ -1,3 +1,4 @@
+// src/routes/dishRoutes.ts
 import { Router } from 'express';
 import { createDishByMeasureId, createDishByProductId, getDishes, getDishById, updateDishByMeasureId, updateDishByProductId, deleteDishById } from '../controllers/dishController';
 
