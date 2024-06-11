@@ -7,6 +7,8 @@ export const productFields: { [key: string]: any } = {
     name: true,
     subname: true,
     categoryname: true,
+    wasteWeightValue: true,
+    wasteWeightDesc: true,
     isDeleted: true,
   },
   main: {

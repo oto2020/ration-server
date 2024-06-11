@@ -102,6 +102,60 @@ export const createByProductId = async (dishData: DishDataByProductId) => {
   });
 };
 
+const dishToTotalsProductsWeight = (dish: DishType, mode: string) => {
+
+  // 1. Используемые ингридиенты
+  let dishProducts = [];
+
+  // 2. Суммарные значения 
+  // Перечисление всех числовых полей, над которыми будут совершаться вычисления
+  const calcFields = Object.keys(productFields[mode]).filter(
+    key => !['id', 'name', 'subname', 'categoryname', 'isDeleted', 'wasteWeightDesc', 'wasteWeightValue', 'Measures'].includes(key)
+  );
+  let totals: any = {};
+  calcFields.forEach(field => { totals[field] = 0; });
+
+  // 3. Вес блюда
+  let dishWeight = 0;
+
+  for (let i = 0; i < dish.measures.length; i++) {
+
+    // 1. Используемые ингридиенты
+    let dishMeasure = dish.measures[i];
+    let product = dishMeasure.measure.product;
+    let dishProduct = {} as any;
+    dishProduct.name = product.name; // Киви
+    dishProduct.dishMeasureValue = dishMeasure.value; // 0,5
+    dishProduct.dishMeasureName = dishMeasure.measure.name; // стаканов
+    dishProduct.dishMeasureDesc = dishMeasure.measure.desc; // в измельченном виде
+    dishProduct.dishWeight = (dishMeasure.value * dishMeasure.measure.value * 100); // 89,50 (грамм)
+    dishProduct.dishWasteWeight = (dishProduct.dishWeight * product.wasteWeightValue); // 117.76 (грамм)
+    dishProduct.dishWasteWeightDesc = product.wasteWeightDesc; // кожура, 24% от веса
+    // console.log(dishProduct);
+    dishProducts.push(dishProduct);
+
+    // 2. Объект для хранения суммарных значений
+    calcFields.forEach(field => {
+      let fieldValue = product[field];
+      if (fieldValue !== undefined) {
+        dishProduct[field] = fieldValue;
+        totals[field] += (fieldValue * dishProduct.dishWeight / 100);
+      }
+    });
+
+    // 3 Вес блюда
+    dishWeight += dishProduct.dishWeight;
+  }
+
+  // 2. Нормализация всех суммирующих макро и микронтриентов на 100г продукта
+  const totalsNormalized = calcFields.reduce((acc, field) => {
+    acc[field] = (totals[field] * 100 / dishWeight);
+    return acc;
+  }, {} as any);
+
+  return {id: dish.id, name: dish.name, description: dish.description, weigth: dishWeight, products: dishProducts, totals: totalsNormalized};
+}
+
 export const fetchDishes = async (mode: string) => {
   let dishes = await prisma.dish.findMany({
     include: {
@@ -119,12 +173,14 @@ export const fetchDishes = async (mode: string) => {
     },
   });
 
-  console.log(dishes);
+  // Преобразование каждого блюда с использованием dishToTotalsProductsWight
+  let transformedDishes = dishes.map(dish => {
+    const transformedDish = dishToTotalsProductsWeight(dish, mode);
+    return transformedDish;
+  })
 
-  return dishes; 
+  return transformedDishes;
 };
-
-
 
 export const fetchDishById = async (id: number, mode: string) => {
   let dish = await prisma.dish.findUnique({
@@ -135,64 +191,20 @@ export const fetchDishById = async (id: number, mode: string) => {
           measure: {
             include: {
               product: {
-                select: productFields['dishServiceFetchProductFields'] || productFields['full']
+                select: productFields[mode] || productFields['full']
               }
             }
           }
         },
       },
     },
-  }) as DishType | null;;
+  }) as DishType | null;
 
-
-  // Перечисление всех числовых полей, над которыми будут совершаться вычисления
-  const calcFields = Object.keys(productFields['dishServiceFetchProductFields']).filter(
-    key => !['id', 'name', 'subname', 'categoryname', 'isDeleted', 'wasteWeightDesc', 'wasteWeightValue'].includes(key)
-  );
-
-  // Инициализация объекта для хранения суммарных значений
-  let totals: any = {};
-  calcFields.forEach(field => {
-    totals[field] = 0;
-  });
-  let weight = 0;
-
-  let productsTable = dish==null?[]:dish.measures.map(m => {
-    // количество единицы измерения (сколько стаканов, сколько грамм и тд.)
-    let measureCount = m.value;
-    // название единицы измерения
-    let measureName = m.measure.name;
-    // описание единицы измерения
-    let measureDesc = m.measure.desc;
-    // коэффициент единицы измерения, нормирующий measurment в граммы
-    let measureValue = m.measure.value;
-    // продукт
-    let product = m.measure.product;
-    // Вес продукта в граммах
-    product.weight = measureCount*measureValue*100;
-    // коэффициент веса продукта с отходами
-    let wasteWeightValue = product.wasteWeightValue;
-    let wasteWeightDesc = product.wasteWeightDesc;
-    // Вес продукта с учетом веса отходов
-    let productWasteWeight = product.weight * wasteWeightValue;
-
-    console.log(`${product.name}, ${measureCount} ${measureName} ${measureDesc} = ${product.weight.toFixed(2)} г. / ${productWasteWeight.toFixed(2)} г. (${wasteWeightDesc})`);
-    
-    // Подсчет суммарных значений для каждого числового поля
-    calcFields.forEach(field => {
-      if (product[field] !== undefined) {
-        totals[field] += (product[field] * product.weight / 100);
-      }
-    });
-    weight += product.weight;
-  })
-  console.log(`Общий вес блюда: ${weight}`);
-  const totalsNormalized = calcFields.reduce((acc, field) => {
-    acc[field] = (totals[field] * 100 / weight);
-    return acc;
-  }, {} as any);
-  console.log(`Характеристики блюда на 100г. продукта:`, totalsNormalized);
-  return dish;
+  if (dish === null) {
+    return {id: id, name: null, description: null, weigth: null, products: [], totals: null};
+  } else {
+    return dishToTotalsProductsWeight(dish, mode);
+  }
 };
 
 export const updateByMeasureId = async (id: number, dishData: DishDataByMeasureId) => {
