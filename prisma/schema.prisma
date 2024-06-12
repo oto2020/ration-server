@@ -76,6 +76,7 @@ model Dish {
   name        String
   description String
   measures    DishMeasure[]
+  RationDishes RationDish[]
 }
 
 model DishMeasure {
@@ -89,3 +90,34 @@ model DishMeasure {
   @@map("dish_measures")
 }
 
+model Ration {
+  id          Int          @id @default(autoincrement())
+  name        String       
+  description String
+  userId      Int       @default(1)
+  startDate   DateTime
+  dishes      RationDish[]
+  
+  @@unique([name, description, startDate])
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+  SUPPER
+}
+
+model RationDish {
+  id          Int       @id @default(autoincrement())
+  rationId    Int
+  dishId      Int
+  value       Float
+  mealType    MealType
+  dayNumber   Int
+  ration      Ration    @relation(fields: [rationId], references: [id])
+  dish        Dish      @relation(fields: [dishId], references: [id])
+
+  @@map("ration_dishes")
+}
