@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createByMeasureId, createByProductId, fetchDishes, fetchDishById, updateByMeasureId, updateByProductId, deleteDish } from '../services/dishService';
+import { createByMeasureId, createByProductId, createMultipleByProductId, fetchDishes, fetchDishById, updateByMeasureId, updateByProductId, deleteDish } from '../services/dishService';
 
 export const createDishByProductId = async (req: Request, res: Response) => {
   try {
@@ -43,7 +43,6 @@ export const getDishes = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getDishById = async (req: Request, res: Response) => {
   try {
     const mode = (req.query.mode as string) || 'full';
@@ -78,22 +77,20 @@ export const updateDishByMeasureId = async (req: Request, res: Response) => {
   }
 };
 
-
 export const updateDishByProductId = async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const dishData = req.body;
-      const updatedDish = await updateByProductId(Number(id), dishData);
-      res.status(200).json(updatedDish);
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
-      } else {
-        res.status(400).json({ error: 'An unknown error occurred' });
-      }
+  try {
+    const { id } = req.params;
+    const dishData = req.body;
+    const updatedDish = await updateByProductId(Number(id), dishData);
+    res.status(200).json(updatedDish);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
     }
-  };  
-
+  }
+};
 
 export const deleteDishById = async (req: Request, res: Response) => {
   try {
@@ -105,6 +102,20 @@ export const deleteDishById = async (req: Request, res: Response) => {
       res.status(500).json({ error: error.message });
     } else {
       res.status(500).json({ error: 'An unknown error occurred' });
+    }
+  }
+};
+
+export const createMultipleDishesByProductId = async (req: Request, res: Response) => {
+  try {
+    const dishesData = req.body.dishes;
+    const newDishes = await createMultipleByProductId(dishesData);
+    res.status(201).json(newDishes);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
     }
   }
 };

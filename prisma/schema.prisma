@@ -12,6 +12,7 @@ model Product {
   name             String
   subname          String?
   categoryname     String?
+
   kcal             Float
   mainFats         Float
   mainProteins     Float
@@ -50,9 +51,12 @@ model Product {
   copper           Float?
   manganese        Float?
   selenium         Float?
+
   wasteWeightValue Float   @default(1.0)
   wasteWeightDesc  String  @default("Продукт в чистом виде")
+
   isDeleted        Boolean @default(false)
+
   Measures         Measure[]
 
   @@unique([name, subname])
@@ -72,11 +76,54 @@ model Measure {
 }
 
 model Dish {
-  id          Int          @id @default(autoincrement())
-  name        String
-  description String
-  measures    DishMeasure[]
-  RationDishes RationDish[]
+  id              Int         @id @default(autoincrement())
+  name            String      @unique
+  categoryname    String?
+  description     String?
+  
+  kcal            Float?
+  mainFats        Float?
+  mainProteins    Float?
+  mainCarb        Float?
+  mainWater       Float?
+  mainAsh         Float?
+  subSugar        Float?
+  subFiber        Float?
+  subStarch       Float?
+  subTransfats    Float?
+  vitamin_a       Float?
+  beta_carotene   Float?
+  alpha_carotene  Float?
+  vitamin_e       Float?
+  vitamin_k       Float?
+  vitamin_c       Float?
+  vitamin_b1      Float?
+  vitamin_b3      Float?
+  vitamin_b4      Float?
+  vitamin_b5      Float?
+  vitamin_b6      Float?
+  vitamin_b9      Float?
+  vitamin_b12     Float?
+  vitamin_b2      Float?
+  vitamin_d       Float?
+  vitamin_d2      Float?
+  vitamin_d3      Float?
+  calcium         Float?
+  fluoride        Float?
+  iron            Float?
+  magnesium       Float?
+  phosphorus      Float?
+  potassium       Float?
+  sodium          Float?
+  zinc            Float?
+  copper          Float?
+  manganese       Float?
+  selenium        Float?
+
+  isDeleted       Boolean @default(false)
+
+  measures        DishMeasure[]
+  DayRationDishes    DayRationDish[]
 }
 
 model DishMeasure {
@@ -90,13 +137,54 @@ model DishMeasure {
   @@map("dish_measures")
 }
 
-model Ration {
-  id          Int          @id @default(autoincrement())
-  name        String       
-  description String
-  userId      Int       @default(1)
-  startDate   DateTime
-  dishes      RationDish[]
+model DayRation {
+  id              Int             @id @default(autoincrement())
+  name            String       
+  description     String?
+  userId          Int             @default(1)
+  date            DateTime
+  
+  kcal            Float?
+  mainFats        Float?
+  mainProteins    Float?
+  mainCarb        Float?
+  mainWater       Float?
+  mainAsh         Float?
+  subSugar        Float?
+  subFiber        Float?
+  subStarch       Float?
+  subTransfats    Float?
+  vitamin_a       Float?
+  beta_carotene   Float?
+  alpha_carotene  Float?
+  vitamin_e       Float?
+  vitamin_k       Float?
+  vitamin_c       Float?
+  vitamin_b1      Float?
+  vitamin_b3      Float?
+  vitamin_b4      Float?
+  vitamin_b5      Float?
+  vitamin_b6      Float?
+  vitamin_b9      Float?
+  vitamin_b12     Float?
+  vitamin_b2      Float?
+  vitamin_d       Float?
+  vitamin_d2      Float?
+  vitamin_d3      Float?
+  calcium         Float?
+  fluoride        Float?
+  iron            Float?
+  magnesium       Float?
+  phosphorus      Float?
+  potassium       Float?
+  sodium          Float?
+  zinc            Float?
+  copper          Float?
+  manganese       Float?
+  selenium        Float?
+
+  isDeleted       Boolean         @default(false)
+  dishes          DayRationDish[]
   
   @@unique([name, description, startDate])
 }
@@ -109,15 +197,14 @@ enum MealType {
   SUPPER
 }
 
-model RationDish {
-  id          Int       @id @default(autoincrement())
-  rationId    Int
-  dishId      Int
-  value       Float
-  mealType    MealType
-  dayNumber   Int
-  ration      Ration    @relation(fields: [rationId], references: [id])
-  dish        Dish      @relation(fields: [dishId], references: [id])
+model DayRationDish {
+  id            Int         @id @default(autoincrement())
+  DayRationId   Int
+  dishId        Int
+  value         Float
+  mealType      MealType
+  DayRation     DayRation   @relation(fields: [DayRationId], references: [id])
+  dish          Dish        @relation(fields: [dishId], references: [id])
 
-  @@map("ration_dishes")
+  @@map("DayRation_dishes")
 }

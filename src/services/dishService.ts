@@ -44,6 +44,10 @@ type DishDataByProductId = {
   products: DishMeasureInputByProductId[];
 };
 
+type MultipleDishDataByProductId = {
+  dishes: DishDataByProductId[];
+};
+
 // Создание блюда с measureId
 export const createByMeasureId = async (dishData: DishDataByMeasureId) => {
   if (!Array.isArray(dishData.measures)) {
@@ -103,8 +107,52 @@ export const createByProductId = async (dishData: DishDataByProductId) => {
   });
 };
 
-const dishToTotalsProductsWeight = (dish: DishType, mode: string) => {
+// Создание множества блюд с productId
+export const createMultipleByProductId = async (dishesData: DishDataByProductId[]) => {
+  console.log(dishesData);
+  const dishCreationPromises = dishesData.map(async (dishData) => {
+    if (!Array.isArray(dishData.products)) {
+      throw new Error("products must be an array");
+    }
 
+    // Получение measureId для каждого продукта, где name == "грамм"
+    const measuresWithGram = await Promise.all(dishData.products.map(async (product) => {
+      const gramMeasure = await prisma.measure.findFirst({
+        where: {
+          productId: product.productId,
+          name: 'грамм'
+        }
+      });
+
+      if (!gramMeasure) {
+        throw new Error(`Measure with name 'грамм' not found for productId ${product.productId}`);
+      }
+
+      return {
+        measureId: gramMeasure.id,
+        value: product.value
+      };
+    }));
+
+    return prisma.dish.create({
+      data: {
+        name: dishData.name,
+        description: dishData.description,
+        measures: {
+          create: measuresWithGram.map(measure => ({
+            measure: { connect: { id: measure.measureId } },
+            value: measure.value,
+          })),
+        },
+      },
+    });
+  });
+
+  return Promise.all(dishCreationPromises);
+};
+
+
+const dishToTotalsProductsWeight = (dish: DishType, mode: string) => {
   // 1. Используемые ингридиенты
   let dishProducts = [];
 
