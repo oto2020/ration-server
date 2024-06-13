@@ -1,7 +1,7 @@
-// src/services/productFields.ts
+// src/services/productFields.js
 
 // Объект для хранения всех конфигураций
-export const productFields: { [key: string]: any } = {
+const productFields = {
   title: {
     id: true,
     name: true,
@@ -144,3 +144,6 @@ export const productFields: { [key: string]: any } = {
   }
 };
 
+module.exports = {
+  productFields
+};

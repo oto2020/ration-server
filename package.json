@@ -7,8 +7,8 @@
     "drop": "node prisma/seeds/dropDataBase.js",
     "create": "npx prisma migrate dev --name init",
     "seed": "node prisma/seeds/seed.js",
-    "server": "npx ts-node src/app.ts",
-    "dev": "nodemon --watch src --ext ts,json --exec ts-node src/app.ts"
+    "server": "node src/app.js",
+    "dev": "nodemon --watch src --ext js,json --exec node src/app.js"
   },
   "author": "igo4ek",
   "license": "ISC",
@@ -22,12 +22,6 @@
     "prisma": "^5.14.0"
   },
   "devDependencies": {
-    "@types/body-parser": "^1.19.5",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.13.0",
-    "nodemon": "^3.1.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "nodemon": "^3.1.2"
   }
 }

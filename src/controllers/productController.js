@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
-import {
+// src/controllers/productController.js
+
+const {
   createNewProduct, 
   fetchProducts, 
   fetchProductById,
@@ -7,9 +8,9 @@ import {
   updateProduct,
   deleteProduct,
   searchProducts
-} from '../services/productService';
+} = require('../services/productService');
 
-export const createProduct = async (req: Request, res: Response) => {
+const createProduct = async (req, res) => {
   console.log(`createProduct`);
   try {
     const productData = req.body;
@@ -24,13 +25,13 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const getProducts = async (req: Request, res: Response) => {
+const getProducts = async (req, res) => {
   try {
-    const mode = (req.query.mode as string) || 'full';
-    const search = req.query.search as string;
+    const mode = req.query.mode || 'full';
+    const search = req.query.search;
     
     console.log(`getProducts ${mode} ${search}`);
-    let products = search ? await searchProducts(search as string, mode) : await fetchProducts(mode);
+    let products = search ? await searchProducts(search, mode) : await fetchProducts(mode);
     res.status(200).json(products);
   } catch (error) {
     if (error instanceof Error) {
@@ -41,9 +42,7 @@ export const getProducts = async (req: Request, res: Response) => {
   }
 };
 
-
-
-export const getProductCategories = async (req: Request, res: Response) => {
+const getProductCategories = async (req, res) => {
   console.log(`getProductCategories`);
   try {
     let productCategories = await fetchProductCategories();
@@ -57,12 +56,11 @@ export const getProductCategories = async (req: Request, res: Response) => {
   }
 };
 
-
-export const getProductById = async (req: Request, res: Response) => {
+const getProductById = async (req, res) => {
   console.log(`getProductById`);
   try {
     const { id } = req.params;
-    const mode = (req.query.mode as string) || 'full';
+    const mode = req.query.mode || 'full';
     const product = await fetchProductById(Number(id), mode);
     if (product) {
       res.status(200).json(product);
@@ -78,7 +76,7 @@ export const getProductById = async (req: Request, res: Response) => {
   }
 };
 
-export const updateProductById = async (req: Request, res: Response) => {
+const updateProductById = async (req, res) => {
   console.log(`updateProductById`);
   try {
     const { id } = req.params;
@@ -94,7 +92,7 @@ export const updateProductById = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteProductById = async (req: Request, res: Response) => {
+const deleteProductById = async (req, res) => {
   console.log(`deleteProductById`);
   try {
     const { id } = req.params;
@@ -107,4 +105,13 @@ export const deleteProductById = async (req: Request, res: Response) => {
       res.status(500).json({ error: 'An unknown error occurred' });
     }
   }
+};
+
+module.exports = {
+  createProduct,
+  getProducts,
+  getProductCategories,
+  getProductById,
+  updateProductById,
+  deleteProductById,
 };
