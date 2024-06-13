@@ -80,7 +80,7 @@ model Dish {
   name            String      @unique
   categoryname    String?
   description     String?
-  
+
   kcal            Float?
   mainFats        Float?
   mainProteins    Float?
@@ -186,7 +186,7 @@ model DayRation {
   isDeleted       Boolean         @default(false)
   dishes          DayRationDish[]
   
-  @@unique([name, description, startDate])
+  @@unique([name, description, date])
 }
 
 enum MealType {
@@ -203,7 +203,7 @@ model DayRationDish {
   dishId        Int
   value         Float
   mealType      MealType
-  DayRation     DayRation   @relation(fields: [DayRationId], references: [id])
+  dayRation     DayRation   @relation(fields: [DayRationId], references: [id])
   dish          Dish        @relation(fields: [dishId], references: [id])
 
   @@map("DayRation_dishes")
