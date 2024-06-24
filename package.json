@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "r": "node prisma/seeds/dropDataBase.js && npx prisma migrate dev --name init && npx prisma generate && node prisma/seeds/seed.js && npm run dev",
     "drop": "node prisma/seeds/dropDataBase.js",
     "create": "npx prisma migrate dev --name init",
     "seed": "node prisma/seeds/seed.js",
@@ -15,6 +16,7 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^5.14.0",
+    "axios": "^1.7.2",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.19.2",

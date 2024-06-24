@@ -59,6 +59,9 @@ model Product {
 
   Measures         Measure[]
 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
   @@unique([name, subname])
   @@map("products")
 }
@@ -120,10 +123,15 @@ model Dish {
   manganese       Float?
   selenium        Float?
 
+  weight          Float?
+
   isDeleted       Boolean @default(false)
 
   measures        DishMeasure[]
-  DayRationDishes    DayRationDish[]
+  RationDishes    RationDish[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model DishMeasure {
@@ -137,7 +145,7 @@ model DishMeasure {
   @@map("dish_measures")
 }
 
-model DayRation {
+model Ration {
   id              Int             @id @default(autoincrement())
   name            String       
   description     String?
@@ -184,7 +192,10 @@ model DayRation {
   selenium        Float?
 
   isDeleted       Boolean         @default(false)
-  dishes          DayRationDish[]
+  dishes          RationDish[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   
   @@unique([name, description, date])
 }
@@ -197,14 +208,14 @@ enum MealType {
   SUPPER
 }
 
-model DayRationDish {
+model RationDish {
   id            Int         @id @default(autoincrement())
-  DayRationId   Int
+  RationId      Int
   dishId        Int
   value         Float
   mealType      MealType
-  dayRation     DayRation   @relation(fields: [DayRationId], references: [id])
+  ration        Ration      @relation(fields: [RationId], references: [id])
   dish          Dish        @relation(fields: [dishId], references: [id])
 
-  @@map("DayRation_dishes")
+  @@map("Ration_dishes")
 }

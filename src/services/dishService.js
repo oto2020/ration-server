@@ -1,20 +1,80 @@
 // src/services/dishService.js
 
 const { PrismaClient } = require('@prisma/client');
-const { productFields } = require('./productFields');
+const { fields } = require('./fields');
 
 const prisma = new PrismaClient();
 
+// Вспомогательная функция получения единиц измерения по массиву id
+async function getMeasuresByIds(measureIds) {
+  return await prisma.measure.findMany({
+    include: {
+      product: {
+        select: fields['product']
+      }
+    },
+    where: {
+      id: {
+        in: measureIds
+      }
+    }
+  });
+}
+
 // Создание блюда с measureId
 const createByMeasureId = async (dishData) => {
+  console.log('.\n.\n.\n.\n.\n.\ncreateByMeasureId');
   if (!Array.isArray(dishData.measures)) {
     throw new Error("measures must be an array");
   }
   
+  // dishData.measures это массив объектов типа { measureId: 72, value: 2 }
+  // нам нужно добраться до продукта через measureId
+  // console.log(dishData);
+  let measureIds = dishData.measures.map(m => m.measureId);
+  let dishMeasures = await getMeasuresByIds(measureIds);
+
+// console.log(dishMeasures);
+  
+  // суммарные значения по блюду
+  let weight = 0;   // общий вес блюда
+  let totals = {};  // калькулируемые поля
+  let calcFields = Object.keys(fields['full']);  // массив строк с наименованиями всех калькулируемых полей
+  calcFields.forEach(field => { totals[field] = 0; });  // задаем 0 калькулируемым полям
+  // console.log(totals);
+
+  for(let i = 0; i < measureIds.length; i++) {
+    let measureId = measureIds[i]; // id единицы измерения
+    let measureCount = dishData.measures.find(m => m.measureId === measureId).value; // 2 яблока
+    let measureWithProduct = dishMeasures.find(m => m.id === measureId); // единица измерения и продукт внутри
+    let measureValue = measureWithProduct.value; // сколько весит одно яблоко
+    let product = measureWithProduct.product; // продукт со всеми внутренностями 'fordish'
+    let productWeight = measureCount * measureValue * 100; // вес продукта в граммах
+    weight += productWeight;
+
+    calcFields.forEach(field => {
+      if (product[field] !== undefined) {
+        totals[field] += (product[field] * productWeight) / 100;
+      }
+    });
+  }
+
+  // нормализуем, чтобы значения были на 100г продукта
+  totals = Object.keys(totals).reduce((acc, key) => {
+    acc[key] = totals[key] *100 / weight;
+    return acc;
+  }, {});
+
+  console.log(totals);
+  console.log(weight);
+
   return prisma.dish.create({
     data: {
       name: dishData.name,
       description: dishData.description,
+      categoryname: dishData.categoryname,
+      weight: weight,
+      ...totals,
       measures: {
         create: dishData.measures.map(measure => ({
           measure: { connect: { id: measure.measureId } },
@@ -25,139 +85,93 @@ const createByMeasureId = async (dishData) => {
   });
 };
 
+// Вспомогательная функция получения единиц измерения по массиву id продукта
+async function getMeasuresByProductIds (productIds) {
+  return prisma.measure.findMany({
+    where: {
+      productId: {
+        in: productIds,
+      },
+      name: 'грамм',
+    },
+    include: {
+      product: true,
+    },
+  });
+};
+
 // Создание блюда с productId
 const createByProductId = async (dishData) => {
+  console.log('.\n.\n.\n.\n.\n.\ncreateByProductId');
   if (!Array.isArray(dishData.products)) {
     throw new Error("products must be an array");
   }
+  
+  let productIds = dishData.products.map(p => p.productId);
+  let measures = await getMeasuresByProductIds(productIds);
 
-  // Получение measureId для каждого продукта, где name == "грамм"
-  const measuresWithGram = await Promise.all(dishData.products.map(async (product) => {
-    const gramMeasure = await prisma.measure.findFirst({
-      where: {
-        productId: product.productId,
-        name: 'грамм'
-      }
-    });
+  // суммарные значения по блюду
+  let weight = 0;   // общий вес блюда
+  let totals = {};  // калькулируемые поля
+  let calcFields = Object.keys(fields['full']);  // массив строк с наименованиями калькулируемых полей
+  calcFields.forEach(field => { totals[field] = 0; });  // задаем 0 калькулируемым полям
 
-    if (!gramMeasure) {
-      throw new Error(`Measure with name 'грамм' not found for productId ${product.productId}`);
+  dishData.products.forEach((productData) => {
+    let measure = measures.find(m => m.productId === productData.productId);
+    if (!measure) {
+      throw new Error(`Measure with name 'грамм' not found for productId ${productData.productId}`);
     }
 
-    return {
-      measureId: gramMeasure.id,
-      value: product.value
-    };
-  }));
+    let measureValue = measure.value;
+    let product = measure.product;
+    let productWeight = productData.value; // вес продукта в граммах
+    weight += productWeight;
+
+    calcFields.forEach(field => {
+      if (product[field] !== undefined) {
+        totals[field] += (product[field] * productWeight) / 100;
+      }
+    });
+  });
+
+  // нормализуем, чтобы значения были на 100г продукта
+  totals = Object.keys(totals).reduce((acc, key) => {
+    acc[key] = totals[key] * 100 / weight;
+    return acc;
+  }, {});
+
+  console.log(totals);
+  console.log(weight);
 
   return prisma.dish.create({
     data: {
       name: dishData.name,
       description: dishData.description,
+      categoryname: dishData.categoryname,
+      weight: weight,
+      ...totals,
       measures: {
-        create: measuresWithGram.map(measure => ({
-          measure: { connect: { id: measure.measureId } },
-          value: measure.value,
+        create: dishData.products.map(product => ({
+          measure: { connect: { id: measures.find(m => m.productId === product.productId).id } },
+          value: product.value,
         })),
       },
     },
   });
 };
 
-// Создание множества блюд с productId
-const createMultipleByProductId = async (dishesData) => {
-  const dishCreationPromises = dishesData.map(async (dishData) => {
-    if (!Array.isArray(dishData.products)) {
-      throw new Error("products must be an array");
-    }
 
-    const measuresWithGram = await Promise.all(dishData.products.map(async (product) => {
-      const gramMeasure = await prisma.measure.findFirst({
-        where: {
-          productId: product.productId,
-          name: 'грамм'
-        }
-      });
-
-      if (!gramMeasure) {
-        throw new Error(`Measure with name 'грамм' not found for productId ${product.productId}`);
-      }
-
-      return {
-        measureId: gramMeasure.id,
-        value: product.value
-      };
-    }));
-
-    return prisma.dish.create({
-      data: {
-        name: dishData.name,
-        description: dishData.description,
-        measures: {
-          create: measuresWithGram.map(measure => ({
-            measure: { connect: { id: measure.measureId } },
-            value: measure.value,
-          })),
-        },
-      },
-    });
-  });
-
-  return Promise.all(dishCreationPromises);
-};
-
-const dishToTotalsProductsWeight = (dish, mode) => {
-  // 1. Используемые ингридиенты
-  let dishProducts = [];
-
-  // 2. Суммарные значения 
-  // Перечисление всех числовых полей, над которыми будут совершаться вычисления
-  const calcFields = Object.keys(productFields[mode]).filter(
-    key => !['id', 'name', 'subname', 'categoryname', 'isDeleted', 'wasteWeightDesc', 'wasteWeightValue', 'Measures'].includes(key)
-  );
-  let totals = {};
-  calcFields.forEach(field => { totals[field] = 0; });
-
-  // 3. Вес блюда
-  let dishWeight = 0;
-
-  for (let i = 0; i < dish.measures.length; i++) {
-    // 1. Используемые ингридиенты
-    let dishMeasure = dish.measures[i];
-    let product = dishMeasure.measure.product;
-    let dishProduct = {};
-    dishProduct.name = product.name; // Киви
-    dishProduct.dishMeasureValue = dishMeasure.value; // 0,5
-    dishProduct.dishMeasureName = dishMeasure.measure.name; // стаканов
-    dishProduct.dishMeasureDesc = dishMeasure.measure.desc; // в измельченном виде
-    dishProduct.dishWeight = (dishMeasure.value * dishMeasure.measure.value * 100); // 89,50 (грамм)
-    dishProduct.dishWasteWeight = (dishProduct.dishWeight * product.wasteWeightValue); // 117.76 (грамм)
-    dishProduct.dishWasteWeightDesc = product.wasteWeightDesc; // кожура, 24% от веса
-    dishProducts.push(dishProduct);
-
-    // 2. Объект для хранения суммарных значений
-    calcFields.forEach(field => {
-      let fieldValue = product[field];
-      if (fieldValue !== undefined) {
-        dishProduct[field] = fieldValue;
-        totals[field] += (fieldValue * dishProduct.dishWeight / 100);
-      }
-    });
-
-    // 3 Вес блюда
-    dishWeight += dishProduct.dishWeight;
-  }
-
-  // 2. Нормализация всех суммирующих макро и микронтриентов на 100г продукта
-  const totalsNormalized = calcFields.reduce((acc, field) => {
-    acc[field] = (totals[field] * 100 / dishWeight);
-    return acc;
-  }, {});
-
-  return {id: dish.id, name: dish.name, description: dish.description, weight: dishWeight, products: dishProducts, totals: totalsNormalized};
-}
 
 const fetchDishes = async (mode) => {
+  const calcFields = fields[mode] || fields['full'];
+  const selectedDishFields = {
+    ...fields['dishDefault'],
+    ...calcFields,
+  };
+  const selectedProductFields = {
+    ...fields['productDefault'],
+    ...calcFields,
+  };
   let dishes = await prisma.dish.findMany({
     include: {
       measures: {
@@ -165,47 +179,89 @@ const fetchDishes = async (mode) => {
           measure: {
             include: {
               product: {
-                select: productFields[mode] || productFields['full']
+                select: selectedProductFields
               }
             }
           }
         },
       },
-    },
+    }
   });
 
-  // Преобразование каждого блюда с использованием dishToTotalsProductsWeight
-  let transformedDishes = dishes.map(dish => {
-    const transformedDish = dishToTotalsProductsWeight(dish, mode);
-    return transformedDish;
+  // отбор необходимых полей
+  dishes = dishes.map(dish => {
+    const selectedDish = {};
+    for (const field in selectedDishFields) {
+      if (dish.hasOwnProperty(field)) {
+        selectedDish[field] = dish[field];
+      }
+    }
+    // Добавляем включенные данные
+    selectedDish.measures = dish.measures;
+    return selectedDish;
   });
 
-  return transformedDishes;
+  console.log(dishes);
+  return dishes;
 };
 
+
 const fetchDishById = async (id, mode) => {
+  const calcFields = fields[mode] || fields['full'];
+  const selectedDishFields = {
+    ...fields['dishDefault'],
+    ...calcFields,
+  };
+  const selectedProductFields = {
+    ...fields['productDefault'],
+    ...calcFields,
+  };
+
+  // Получение данных с использованием include
   let dish = await prisma.dish.findUnique({
-    where: { id },
+    where: { id: parseInt(id) },
     include: {
       measures: {
         include: {
           measure: {
             include: {
               product: {
-                select: productFields[mode] || productFields['full']
-              }
-            }
-          }
+                select: selectedProductFields
+              }, // Включаем все поля для дальнейшей фильтрации
+            },
+          },
         },
       },
     },
   });
 
-  if (dish === null) {
-    return {id: id, name: null, description: null, weight: null, products: [], totals: null};
-  } else {
-    return dishToTotalsProductsWeight(dish, mode);
+  if (!dish) {
+    throw new Error(`Dish with ID ${id} not found`);
   }
+
+  // Функция для фильтрации полей объекта
+  const filterFields = (object, fields) => {
+    return Object.keys(object)
+      .filter(key => fields[key])
+      .reduce((acc, key) => {
+        acc[key] = object[key];
+        return acc;
+      }, {});
+  };
+
+  // Отбор только необходимых полей для Dish
+  const selectedDish = filterFields(dish, selectedDishFields);
+
+  // Обработка measures и фильтрация полей продукта
+  selectedDish.measures = dish.measures.map(measure => ({
+    ...measure,
+    measure: {
+      ...measure.measure,
+      product: filterFields(measure.measure.product, selectedProductFields),
+    },
+  }));
+
+  return selectedDish;
 };
 
 const updateByMeasureId = async (id, dishData) => {
@@ -277,7 +333,6 @@ const deleteDish = async (id) => {
 module.exports = {
   createByMeasureId,
   createByProductId,
-  createMultipleByProductId,
   fetchDishes,
   fetchDishById,
   updateByMeasureId,

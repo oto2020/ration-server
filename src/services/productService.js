@@ -1,7 +1,7 @@
 // src/services/productService.js
 
 const { PrismaClient } = require('@prisma/client');
-const { productFields } = require('./productFields');
+const { fields } = require('./fields');
 
 const prisma = new PrismaClient();
 
@@ -34,8 +34,12 @@ const createNewProduct = async (productData) => {
 
 // Получение всех продуктов (все поля)
 const fetchProducts = async (mode) => {
+  const selectedFields = {
+    ...fields['productDefault'],
+    ...(fields[mode] || fields['full']),
+  };
   return prisma.product.findMany({
-    select: productFields[mode] || productFields['full']
+    select: selectedFields
   });
 };
 
@@ -56,9 +60,13 @@ const fetchProductCategories = async () => {
 
 // Получение продукта по id
 const fetchProductById = async (id, mode) => {
+  const selectedFields = {
+    ...fields['productDefault'],
+    ...(fields[mode] || fields['full']),
+  };
   return prisma.product.findUnique({
     where: { id },
-    select: productFields[mode] || productFields['full']
+    select: selectedFields
   });
 };
 
@@ -109,10 +117,14 @@ const deleteProduct = async (id) => {
 // Поиск продуктов (только главные поля) по текстовым полям с приоритезацией 
 const searchProducts = async (searchString, mode) => {
   const lowerCaseSearchString = searchString.toLowerCase();
+  const selectedFields = {
+    ...fields['productDefault'],
+    ...(fields[mode] || fields['full']),
+  };
 
   // Выполнение единственного запроса с объединением всех условий
   const results = await prisma.product.findMany({
-    select: productFields[mode] || productFields['full'],
+    select: selectedFields,
     where: {
       OR: [
         { name: { startsWith: lowerCaseSearchString } },

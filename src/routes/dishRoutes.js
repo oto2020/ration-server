@@ -4,7 +4,6 @@ const { Router } = require('express');
 const { 
     createDishByMeasureId, 
     createDishByProductId, 
-    createMultipleDishesByProductId, 
     getDishes, 
     getDishById, 
     updateDishByMeasureId, 
@@ -16,7 +15,6 @@ const router = Router();
 
 router.post('/by-measure-id', createDishByMeasureId);
 router.post('/by-product-id', createDishByProductId);
-router.post('/multiple-by-product-id', createMultipleDishesByProductId);
 router.get('/', getDishes);
 router.get('/:id', getDishById);
 router.put('/by-measure-id/:id', updateDishByMeasureId);
