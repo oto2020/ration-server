@@ -7,39 +7,40 @@ const prisma = new PrismaClient();
 
 // Создание продукта
 const createNewProduct = async (productData) => {
-  // Проверка наличия массива productData.Measures
-  if (!productData.Measures) {
-    productData.Measures = [];
-  }
-  // Проверка наличия объекта с name == "грамм"
-  const hasGramMeasure = productData.Measures.some((measure) => measure.name === 'грамм');
-  // Если объекта нет, добавляем его
-  if (!hasGramMeasure) {
-    productData.Measures.push({
+  // Убедитесь, что measures существует и добавьте 'грамм', если его нет
+  productData.measures = productData.measures || [];
+  if (!productData.measures.find((measure) => measure.name === 'грамм')) {
+    productData.measures.push({
       name: 'грамм',
       value: 0.01,
       desc: ''
     });
   }
+  // Убедитесь, что nutritionFacts существует
+  productData.nutritionFacts = productData.nutritionFacts || [];
 
   return prisma.product.create({
     data: {
-      ...productData,
-      Measures: {
-        create: productData.Measures,
+      ...productData, // казалось бы все поля
+      measures: {
+        create: productData.measures, // но вложения нужно описать дополнительно
       },
+      nutritionFacts: {
+        create: productData.nutritionFacts
+      }
     },
   });
 };
 
 // Получение всех продуктов (все поля)
 const fetchProducts = async (mode) => {
-  const selectedFields = {
-    ...fields['productDefault'],
-    ...(fields[mode] || fields['full']),
-  };
   return prisma.product.findMany({
-    select: selectedFields
+    select: {
+      ...fields['productDefault'],
+      nutritionFacts: {
+        select: {...fields[mode]}
+      }
+    }
   });
 };
 
@@ -51,7 +52,6 @@ const fetchProductCategories = async () => {
       categoryname: true,
     },
   });
-
   return categories.map(category => ({
     category: category.categoryname,
     count: category._count.categoryname,
@@ -60,85 +60,100 @@ const fetchProductCategories = async () => {
 
 // Получение продукта по id
 const fetchProductById = async (id, mode) => {
-  const selectedFields = {
-    ...fields['productDefault'],
-    ...(fields[mode] || fields['full']),
-  };
   return prisma.product.findUnique({
     where: { id },
-    select: selectedFields
+    select: {
+      ...fields['productDefault'],
+      nutritionFacts: {
+        select: {...fields[mode]}
+      }
+    }
   });
 };
 
-// Обновление продукта
-const updateProduct = async (id, productData) => {
-  const { Measures, ...productFields } = productData;
+// // Обновление продукта
+// const updateProduct = async (id, productData) => {
+//   const { measures, ...productFields } = productData;
 
-  // Если Measures не передали, значит обновляем без Measures
-  if (!Measures) {
-    return prisma.product.update({
-      where: { id },
-      data: {
-        ...productFields
-      },
-    });
-  }
+//   // Если Measures не передали, значит обновляем без Measures
+//   if (!Measures) {
+//     return prisma.product.update({
+//       where: { id },
+//       data: {
+//         ...productFields
+//       },
+//     });
+//   }
   
-  // Проверка наличия объекта с name == "грамм"
-  const hasGramMeasure = productData.Measures.some((measure) => measure.name === 'грамм');
-  // Если объекта нет, добавляем его
-  if (!hasGramMeasure) {
-    productData.Measures.push({
-      name: 'грамм',
-      value: 0.01,
-      desc: ''
-    });
-  }
+//   // Проверка наличия объекта с name == "грамм"
+//   const hasGramMeasure = productData.Measures.some((measure) => measure.name === 'грамм');
+//   // Если объекта нет, добавляем его
+//   if (!hasGramMeasure) {
+//     productData.Measures.push({
+//       name: 'грамм',
+//       value: 0.01,
+//       desc: ''
+//     });
+//   }
 
-  return prisma.product.update({
-    where: { id },
-    data: {
-      ...productFields,
-      Measures: productData.Measures ? {
-        deleteMany: {},
-        create: productData.Measures,
-      } : undefined,
-    },
-  });
-};
+//   return prisma.product.update({
+//     where: { id },
+//     data: {
+//       ...productFields,
+//       Measures: productData.Measures ? {
+//         deleteMany: {},
+//         create: productData.Measures,
+//       } : undefined,
+//     },
+//   });
+// };
 
-// Удаление продукта
-const deleteProduct = async (id) => {
-  return prisma.product.delete({
-    where: { id },
-  });
-};
+// // Удаление продукта
+// const deleteProduct = async (id) => {
+//   return prisma.product.delete({
+//     where: { id },
+//   });
+// };
 
-// Поиск продуктов (только главные поля) по текстовым полям с приоритезацией 
 const searchProducts = async (searchString, mode) => {
   const lowerCaseSearchString = searchString.toLowerCase();
-  const selectedFields = {
-    ...fields['productDefault'],
-    ...(fields[mode] || fields['full']),
-  };
+  const searchWords = lowerCaseSearchString.split(/\s+/); // Разбиваем строку на слова
 
-  // Выполнение единственного запроса с объединением всех условий
-  const results = await prisma.product.findMany({
-    select: selectedFields,
-    where: {
-      OR: [
-        { name: { startsWith: lowerCaseSearchString } },
-        { subname: { startsWith: lowerCaseSearchString } },
-        { categoryname: { startsWith: lowerCaseSearchString } },
-        { name: { contains: lowerCaseSearchString } },
-        { subname: { contains: lowerCaseSearchString } },
-        { categoryname: { contains: lowerCaseSearchString } },
-      ],
-    },
+  // Выполняем запрос для каждого слова и объединяем результаты
+  const searchPromises = searchWords.map(async (word) => {
+    return await prisma.product.findMany({
+      select: {
+        ...fields['productDefault'],
+        nutritionFacts: {
+          select: { ...fields[mode] },
+        },
+      },
+      where: {
+        OR: [
+          { name: { startsWith: word } },
+          { subname: { startsWith: word } },
+          { categoryname: { startsWith: word } },
+          { name: { contains: word } },
+          { subname: { contains: word } },
+          { categoryname: { contains: word } },
+        ],
+      },
+    });
   });
 
+  // Ожидаем выполнения всех запросов
+  const resultsArray = await Promise.all(searchPromises);
+  
+  // Объединяем результаты в один массив
+  const combinedResults = resultsArray.flat();
+
+  // Удаление дубликатов
+  const uniqueResults = Array.from(new Set(combinedResults.map((product) => product.id))).map(
+    (id) => combinedResults.find((product) => product.id === id)
+  );
+
   // Сортировка результатов по приоритету
-  const sortedResults = results.sort((a, b) => {
+  const sortedResults = uniqueResults.sort((a, b) => {
     const getPriority = (product) => {
       if (typeof product.name === 'string' && product.name.toLowerCase().startsWith(lowerCaseSearchString)) return 1;
       if (typeof product.subname === 'string' && product.subname.toLowerCase().startsWith(lowerCaseSearchString)) return 2;
@@ -151,20 +166,17 @@ const searchProducts = async (searchString, mode) => {
     return getPriority(a) - getPriority(b);
   });
 
-  // Удаление дубликатов
-  const uniqueResults = Array.from(new Set(sortedResults.map((product) => product.id))).map(
-    (id) => sortedResults.find((product) => product.id === id)
-  );
-
-  return uniqueResults;
+  return sortedResults;
 };
+
+
 
 module.exports = {
   createNewProduct,
   fetchProducts,
   fetchProductCategories,
   fetchProductById,
-  updateProduct,
-  deleteProduct,
+  // updateProduct,
+  // deleteProduct,
   searchProducts
 };

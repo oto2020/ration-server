@@ -9,12 +9,12 @@ generator client {
 
 model NutritionFacts {
   id               Int      @id @default(autoincrement())
-  kcal             Float
-  mainFats         Float
-  mainProteins     Float
-  mainCarb         Float
-  mainWater        Float
-  mainAsh          Float
+  kcal             Float    @default(0)
+  mainFats         Float    @default(0)
+  mainProteins     Float    @default(0)
+  mainCarb         Float    @default(0)
+  mainWater        Float    @default(0)
+  mainAsh          Float    @default(0)
   subSugar         Float?
   subFiber         Float?
   subStarch        Float?
@@ -67,7 +67,7 @@ model Product {
   wasteWeightValue Float   @default(1.0)
   wasteWeightDesc  String  @default("Продукт в чистом виде")
   isDeleted        Boolean @default(false)
-  Measures         Measure[]
+  measures         Measure[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

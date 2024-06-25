@@ -13,7 +13,7 @@ const fields = {
     wasteWeightValue: true,
     wasteWeightDesc: true,
     isDeleted: true,
-    Measures: true,
+    measures: true,
   },
   // Поля по умолчанию для блюда
   dishDefault: {

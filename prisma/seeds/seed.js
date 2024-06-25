@@ -22,7 +22,7 @@ const seedDatabase = async () => {
         const products = await readJsonFile('./prisma/seeds/productsWithMeasures.json');
 
         for (const product of products) {
-            const { Measures, id, kcal, mainFats, mainProteins, mainCarb, mainWater, mainAsh,
+            const { measures, id, kcal, mainFats, mainProteins, mainCarb, mainWater, mainAsh,
                     subSugar, subFiber, subStarch, subTransfats, vitamin_a, beta_carotene,
                     alpha_carotene, vitamin_e, vitamin_k, vitamin_c, vitamin_b1, vitamin_b3,
                     vitamin_b4, vitamin_b5, vitamin_b6, vitamin_b9, vitamin_b12, vitamin_b2,
@@ -79,8 +79,8 @@ const seedDatabase = async () => {
                 data: {
                     ...productData,
                     nutritionFactsId: nutritionFacts.id,
-                    Measures: {
-                        create: Measures.map(measure => ({
+                    measures: {
+                        create: measures.map(measure => ({
                             name: measure.name,
                             value: measure.value,
                             desc: measure.desc
