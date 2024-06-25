@@ -15,38 +15,38 @@ model NutritionFacts {
   mainCarb         Float    @default(0)
   mainWater        Float    @default(0)
   mainAsh          Float    @default(0)
-  subSugar         Float?
-  subFiber         Float?
-  subStarch        Float?
-  subTransfats     Float?
-  vitamin_a        Float?
-  beta_carotene    Float?
-  alpha_carotene   Float?
-  vitamin_e        Float?
-  vitamin_k        Float?
-  vitamin_c        Float?
-  vitamin_b1       Float?
-  vitamin_b3       Float?
-  vitamin_b4       Float?
-  vitamin_b5       Float?
-  vitamin_b6       Float?
-  vitamin_b9       Float?
-  vitamin_b12      Float?
-  vitamin_b2       Float?
-  vitamin_d        Float?
-  vitamin_d2       Float?
-  vitamin_d3       Float?
-  calcium          Float?
-  fluoride         Float?
-  iron             Float?
-  magnesium        Float?
-  phosphorus       Float?
-  potassium        Float?
-  sodium           Float?
-  zinc             Float?
-  copper           Float?
-  manganese        Float?
-  selenium         Float?
+  subSugar         Float?    @default(0)
+  subFiber         Float?    @default(0)
+  subStarch        Float?    @default(0)
+  subTransfats     Float?    @default(0)
+  vitamin_a        Float?    @default(0)
+  beta_carotene    Float?    @default(0)
+  alpha_carotene   Float?    @default(0)
+  vitamin_e        Float?    @default(0)
+  vitamin_k        Float?    @default(0)
+  vitamin_c        Float?    @default(0)
+  vitamin_b1       Float?    @default(0)
+  vitamin_b3       Float?    @default(0)
+  vitamin_b4       Float?    @default(0)
+  vitamin_b5       Float?    @default(0)
+  vitamin_b6       Float?    @default(0)
+  vitamin_b9       Float?    @default(0)
+  vitamin_b12      Float?    @default(0)
+  vitamin_b2       Float?    @default(0)
+  vitamin_d        Float?    @default(0)
+  vitamin_d2       Float?    @default(0)
+  vitamin_d3       Float?    @default(0)
+  calcium          Float?    @default(0)
+  fluoride         Float?    @default(0)
+  iron             Float?    @default(0)
+  magnesium        Float?    @default(0)
+  phosphorus       Float?    @default(0)
+  potassium        Float?    @default(0)
+  sodium           Float?    @default(0)
+  zinc             Float?    @default(0)
+  copper           Float?    @default(0)
+  manganese        Float?    @default(0)
+  selenium         Float?    @default(0)
 
   product  Product?
   dish     Dish?
