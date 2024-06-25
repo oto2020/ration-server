@@ -22,12 +22,63 @@ const seedDatabase = async () => {
         const products = await readJsonFile('./prisma/seeds/productsWithMeasures.json');
 
         for (const product of products) {
-            const { Measures, id, ...productData } = product;
+            const { Measures, id, kcal, mainFats, mainProteins, mainCarb, mainWater, mainAsh,
+                    subSugar, subFiber, subStarch, subTransfats, vitamin_a, beta_carotene,
+                    alpha_carotene, vitamin_e, vitamin_k, vitamin_c, vitamin_b1, vitamin_b3,
+                    vitamin_b4, vitamin_b5, vitamin_b6, vitamin_b9, vitamin_b12, vitamin_b2,
+                    vitamin_d, vitamin_d2, vitamin_d3, calcium, fluoride, iron, magnesium,
+                    phosphorus, potassium, sodium, zinc, copper, manganese, selenium, 
+                    ...productData } = product;
 
-            // Вставка продукта
+            // Вставка NutritionFacts
+            const nutritionFacts = await prisma.nutritionFacts.create({
+                data: {
+                    kcal,
+                    mainFats,
+                    mainProteins,
+                    mainCarb,
+                    mainWater,
+                    mainAsh,
+                    subSugar,
+                    subFiber,
+                    subStarch,
+                    subTransfats,
+                    vitamin_a,
+                    beta_carotene,
+                    alpha_carotene,
+                    vitamin_e,
+                    vitamin_k,
+                    vitamin_c,
+                    vitamin_b1,
+                    vitamin_b3,
+                    vitamin_b4,
+                    vitamin_b5,
+                    vitamin_b6,
+                    vitamin_b9,
+                    vitamin_b12,
+                    vitamin_b2,
+                    vitamin_d,
+                    vitamin_d2,
+                    vitamin_d3,
+                    calcium,
+                    fluoride,
+                    iron,
+                    magnesium,
+                    phosphorus,
+                    potassium,
+                    sodium,
+                    zinc,
+                    copper,
+                    manganese,
+                    selenium
+                }
+            });
+
+            // Вставка продукта с привязкой к NutritionFacts
             const createdProduct = await prisma.product.create({
                 data: {
                     ...productData,
+                    nutritionFactsId: nutritionFacts.id,
                     Measures: {
                         create: Measures.map(measure => ({
                             name: measure.name,

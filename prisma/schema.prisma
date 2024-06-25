@@ -7,12 +7,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Product {
-  id               Int     @id @default(autoincrement())
-  name             String
-  subname          String?
-  categoryname     String?
-
+model NutritionFacts {
+  id               Int      @id @default(autoincrement())
   kcal             Float
   mainFats         Float
   mainProteins     Float
@@ -52,15 +48,32 @@ model Product {
   manganese        Float?
   selenium         Float?
 
+  product  Product?
+  dish     Dish?
+  ration   Ration?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("nutrition_facts")
+}
+
+model Product {
+  id               Int      @id @default(autoincrement())
+  name             String
+  subname          String?
+  categoryname     String?
+
+  nutritionFacts   NutritionFacts   @relation(fields: [nutritionFactsId], references: [id])
+  nutritionFactsId Int              @unique
+
   wasteWeightValue Float   @default(1.0)
   wasteWeightDesc  String  @default("Продукт в чистом виде")
-
   isDeleted        Boolean @default(false)
-
   Measures         Measure[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([name, subname])
   @@map("products")
@@ -84,54 +97,16 @@ model Dish {
   categoryname    String?
   description     String?
 
-  kcal            Float?
-  mainFats        Float?
-  mainProteins    Float?
-  mainCarb        Float?
-  mainWater       Float?
-  mainAsh         Float?
-  subSugar        Float?
-  subFiber        Float?
-  subStarch       Float?
-  subTransfats    Float?
-  vitamin_a       Float?
-  beta_carotene   Float?
-  alpha_carotene  Float?
-  vitamin_e       Float?
-  vitamin_k       Float?
-  vitamin_c       Float?
-  vitamin_b1      Float?
-  vitamin_b3      Float?
-  vitamin_b4      Float?
-  vitamin_b5      Float?
-  vitamin_b6      Float?
-  vitamin_b9      Float?
-  vitamin_b12     Float?
-  vitamin_b2      Float?
-  vitamin_d       Float?
-  vitamin_d2      Float?
-  vitamin_d3      Float?
-  calcium         Float?
-  fluoride        Float?
-  iron            Float?
-  magnesium       Float?
-  phosphorus      Float?
-  potassium       Float?
-  sodium          Float?
-  zinc            Float?
-  copper          Float?
-  manganese       Float?
-  selenium        Float?
+  nutritionFactsId Int            @unique
+  nutritionFacts  NutritionFacts  @relation(fields: [nutritionFactsId], references: [id])
 
   weight          Float?
-
   isDeleted       Boolean @default(false)
-
   measures        DishMeasure[]
   RationDishes    RationDish[]
-  
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model DishMeasure {
@@ -151,52 +126,16 @@ model Ration {
   description     String?
   userId          Int             @default(1)
   date            DateTime
-  
-  kcal            Float?
-  mainFats        Float?
-  mainProteins    Float?
-  mainCarb        Float?
-  mainWater       Float?
-  mainAsh         Float?
-  subSugar        Float?
-  subFiber        Float?
-  subStarch       Float?
-  subTransfats    Float?
-  vitamin_a       Float?
-  beta_carotene   Float?
-  alpha_carotene  Float?
-  vitamin_e       Float?
-  vitamin_k       Float?
-  vitamin_c       Float?
-  vitamin_b1      Float?
-  vitamin_b3      Float?
-  vitamin_b4      Float?
-  vitamin_b5      Float?
-  vitamin_b6      Float?
-  vitamin_b9      Float?
-  vitamin_b12     Float?
-  vitamin_b2      Float?
-  vitamin_d       Float?
-  vitamin_d2      Float?
-  vitamin_d3      Float?
-  calcium         Float?
-  fluoride        Float?
-  iron            Float?
-  magnesium       Float?
-  phosphorus      Float?
-  potassium       Float?
-  sodium          Float?
-  zinc            Float?
-  copper          Float?
-  manganese       Float?
-  selenium        Float?
+
+  nutritionFactsId Int            @unique
+  nutritionFacts  NutritionFacts  @relation(fields: [nutritionFactsId], references: [id])
 
   isDeleted       Boolean         @default(false)
   dishes          RationDish[]
-  
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([name, description, date])
 }
 
