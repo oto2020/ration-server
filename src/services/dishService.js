@@ -170,107 +170,65 @@ const createByMeasureId = async (dishData) => {
 
 
 
-// const fetchDishes = async (mode) => {
-//   const calcFields = fields[mode] || fields['full'];
-//   const selectedDishFields = {
-//     ...fields['dishDefault'],
-//     ...calcFields,
-//   };
-//   const selectedProductFields = {
-//     ...fields['productDefault'],
-//     ...calcFields,
-//   };
-//   let dishes = await prisma.dish.findMany({
-//     include: {
-//       measures: {
-//         include: {
-//           measure: {
-//             include: {
-//               product: {
-//                 select: selectedProductFields
-//               }
-//             }
-//           }
-//         },
-//       },
-//     }
-//   });
-
-//   // отбор необходимых полей
-//   dishes = dishes.map(dish => {
-//     const selectedDish = {};
-//     for (const field in selectedDishFields) {
-//       if (dish.hasOwnProperty(field)) {
-//         selectedDish[field] = dish[field];
-//       }
-//     }
-//     // Добавляем включенные данные
-//     selectedDish.measures = dish.measures;
-//     return selectedDish;
-//   });
-
-//   console.log(dishes);
-//   return dishes;
-// };
+const fetchDishes = async (mode) => {
+  return prisma.dish.findMany({
+    select: {
+      ...fields['dishDefault'],
+      dishMeasures: {
+        include: {
+          measure: {
+            include: {
+              product: {
+                include: {
+                  nutritionFacts: {
+                    select: {...fields[mode]}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      nutritionFacts: {
+        select: {...fields[mode]}
+      }
+    }
+  });
+};
 
 
-// const fetchDishById = async (id, mode) => {
-//   const calcFields = fields[mode] || fields['full'];
-//   const selectedDishFields = {
-//     ...fields['dishDefault'],
-//     ...calcFields,
-//   };
-//   const selectedProductFields = {
-//     ...fields['productDefault'],
-//     ...calcFields,
-//   };
 
-//   // Получение данных с использованием include
-//   let dish = await prisma.dish.findUnique({
-//     where: { id: parseInt(id) },
-//     include: {
-//       measures: {
-//         include: {
-//           measure: {
-//             include: {
-//               product: {
-//                 select: selectedProductFields
-//               }, // Включаем все поля для дальнейшей фильтрации
-//             },
-//           },
-//         },
-//       },
-//     },
-//   });
+const fetchDishById = async (id, mode) => {
+  return prisma.dish.findUnique({
+    select: {
+      ...fields['dishDefault'],
+      dishMeasures: {
+        include: {
+          measure: {
+            include: {
+              product: {
+                include: {
+                  nutritionFacts: {
+                    select: {...fields[mode]}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      nutritionFacts: {
+        select: {...fields[mode]}
+      }
+    },
+    where: {
+      id: parseInt(id),
+    }
+  });
+};
 
-//   if (!dish) {
-//     throw new Error(`Dish with ID ${id} not found`);
-//   }
 
-//   // Функция для фильтрации полей объекта
-//   const filterFields = (object, fields) => {
-//     return Object.keys(object)
-//       .filter(key => fields[key])
-//       .reduce((acc, key) => {
-//         acc[key] = object[key];
-//         return acc;
-//       }, {});
-//   };
 
-//   // Отбор только необходимых полей для Dish
-//   const selectedDish = filterFields(dish, selectedDishFields);
-
-//   // Обработка measures и фильтрация полей продукта
-//   selectedDish.measures = dish.measures.map(measure => ({
-//     ...measure,
-//     measure: {
-//       ...measure.measure,
-//       product: filterFields(measure.measure.product, selectedProductFields),
-//     },
-//   }));
-
-//   return selectedDish;
-// };
 
 // const updateByMeasureId = async (id, dishData) => {
 //   if (!Array.isArray(dishData.measures)) {
@@ -341,8 +299,8 @@ const createByMeasureId = async (dishData) => {
 module.exports = {
   createByMeasureId,
   // createByProductId,
-  // fetchDishes,
-  // fetchDishById,
+  fetchDishes,
+  fetchDishById,
   // updateByMeasureId,
   // updateByProductId,
   // deleteDish,

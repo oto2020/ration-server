@@ -21,7 +21,9 @@ const fields = {
     name: true,
     description: true,
     categoryname: true,
+    weight: true,
     isDeleted: true,
+    dishMeasures: true,
   },
 
   // Используемые поля
