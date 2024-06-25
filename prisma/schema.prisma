@@ -86,7 +86,7 @@ model Measure {
   value       Float
   desc        String
   product     Product @relation(fields: [productId], references: [id])
-  DishMeasures DishMeasure[]
+  dishMeasures DishMeasure[]
 
   @@map("measures")
 }
@@ -102,11 +102,13 @@ model Dish {
 
   weight          Float?
   isDeleted       Boolean @default(false)
-  measures        DishMeasure[]
-  RationDishes    RationDish[]
+  dishMeasures    DishMeasure[]
+  rationDishes    RationDish[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("dishes")
 }
 
 model DishMeasure {
@@ -131,12 +133,13 @@ model Ration {
   nutritionFacts  NutritionFacts  @relation(fields: [nutritionFactsId], references: [id])
 
   isDeleted       Boolean         @default(false)
-  dishes          RationDish[]
+  rationDishes    RationDish[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([name, description, date])
+  @@map("rations")
 }
 
 enum MealType {
@@ -149,12 +152,12 @@ enum MealType {
 
 model RationDish {
   id            Int         @id @default(autoincrement())
-  RationId      Int
+  rationId      Int
   dishId        Int
   value         Float
   mealType      MealType
-  ration        Ration      @relation(fields: [RationId], references: [id])
+  ration        Ration      @relation(fields: [rationId], references: [id])
   dish          Dish        @relation(fields: [dishId], references: [id])
 
-  @@map("Ration_dishes")
+  @@map("ration_dishes")
 }
