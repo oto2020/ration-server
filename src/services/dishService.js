@@ -28,6 +28,8 @@ const createByMeasureId = async (dishData) => {
     throw new Error("dishMeasures must be an array");
   }
   
+  // набор measureId берём на ходу
+  let measureIds = dishData.dishMeasures.map(dm => dm.measureId) 
   // 1. научиться через measureId получать продукты и их nutrientFacts
   let measures = await prisma.measure.findMany({
     select: {
@@ -44,7 +46,7 @@ const createByMeasureId = async (dishData) => {
     },
     where: {
       id: {
-        in: dishData.dishMeasures.map(dm => dm.measureId) // набор measureId берём на ходу
+        in: measureIds
       }
     }
   });
@@ -93,83 +95,39 @@ const createByMeasureId = async (dishData) => {
   });
 };
 
-// // Вспомогательная функция получения единиц измерения по массиву id продукта
-// async function getMeasuresByProductIds (productIds) {
-//   return prisma.measure.findMany({
-//     where: {
-//       productId: {
-//         in: productIds,
-//       },
-//       name: 'грамм',
-//     },
-//     include: {
-//       product: true,
-//     },
-//   });
-// };
-
-// // Создание блюда с productId
-// const createByProductId = async (dishData) => {
-//   console.log('.\n.\n.\n.\n.\n.\ncreateByProductId');
-//   if (!Array.isArray(dishData.products)) {
-//     throw new Error("products must be an array");
-//   }
+// Создание блюда с measureId
+const createByProductId = async (dishData) => {
+  console.log('.\n.\n.\n.\n.\n.\ncreateByProductId');
+  if (!Array.isArray(dishData.products)) {
+    throw new Error("products must be an array");
+  }
   
-//   let productIds = dishData.products.map(p => p.productId);
-//   let measures = await getMeasuresByProductIds(productIds);
+  // основная задача заключается в том, чтобы для каждого продукта найти тот measure, который граммы
+  let productIds = dishData.products.map(product => product.productId);
+  let measures = await prisma.measure.findMany({
+    where: {
+      productId: {
+        in: productIds,
+      },
+      name: 'грамм',
+    }
+  });
 
-//   // суммарные значения по блюду
-//   let weight = 0;   // общий вес блюда
-//   let totals = {};  // калькулируемые поля
-//   let calcFields = Object.keys(fields['full']);  // массив строк с наименованиями калькулируемых полей
-//   calcFields.forEach(field => { totals[field] = 0; });  // задаем 0 калькулируемым полям
+  // произвести восстановление привычного из предыдущей функции dishData.dishMeasures
+  dishData.dishMeasures = dishData.products.map(product => {
+    let measure = measures.filter(m=>m.productId === product.productId)[0];
+    return { measureId: measure.id, value: product.value };
+  })
+  // console.log(dishData.products)
+  // console.log(measures);
+  // console.log(dishData.dishMeasures);
 
-//   dishData.products.forEach((productData) => {
-//     let measure = measures.find(m => m.productId === productData.productId);
-//     if (!measure) {
-//       throw new Error(`Measure with name 'грамм' not found for productId ${productData.productId}`);
-//     }
-
-//     let measureValue = measure.value;
-//     let product = measure.product;
-//     let productWeight = productData.value; // вес продукта в граммах
-//     weight += productWeight;
-
-//     calcFields.forEach(field => {
-//       if (product[field] !== undefined) {
-//         totals[field] += (product[field] * productWeight) / 100;
-//       }
-//     });
-//   });
-
-//   // нормализуем, чтобы значения были на 100г продукта
-//   totals = Object.keys(totals).reduce((acc, key) => {
-//     acc[key] = totals[key] * 100 / weight;
-//     return acc;
-//   }, {});
-
-//   console.log(totals);
-//   console.log(weight);
-
-//   return prisma.dish.create({
-//     data: {
-//       name: dishData.name,
-//       description: dishData.description,
-//       categoryname: dishData.categoryname,
-//       weight: weight,
-//       ...totals,
-//       measures: {
-//         create: dishData.products.map(product => ({
-//           measure: { connect: { id: measures.find(m => m.productId === product.productId).id } },
-//           value: product.value,
-//         })),
-//       },
-//     },
-//   });
-// };
+  // вызываем тот-же метод, блистательная хуцпа
+  return createByMeasureId(dishData);
+};
 
 
-
+// получение всех блюд
 const fetchDishes = async (mode) => {
   return prisma.dish.findMany({
     select: {
@@ -197,7 +155,7 @@ const fetchDishes = async (mode) => {
 };
 
 
-
+// получение блюда по Id
 const fetchDishById = async (id, mode) => {
   return prisma.dish.findUnique({
     select: {
@@ -228,7 +186,59 @@ const fetchDishById = async (id, mode) => {
 };
 
 
+const searchDishes = async (searchString, mode) => {
+  const lowerCaseSearchString = searchString.toLowerCase();
+  const searchWords = lowerCaseSearchString.split(/\s+/); // Разбиваем строку на слова
 
+  // Выполняем запрос для каждого слова и объединяем результаты
+  const searchPromises = searchWords.map(async (word) => {
+    return await prisma.dish.findMany({
+      select: {
+        ...fields['dishDefault'],
+        nutritionFacts: {
+          select: { ...fields[mode] },
+        },
+      },
+      where: {
+        OR: [
+          { name: { startsWith: word } },
+          { categoryname: { startsWith: word } },
+          { description: { startsWith: word } },
+          { name: { contains: word } },
+          { categoryname: { contains: word } },
+          { description: { contains: word } },
+        ],
+      },
+    });
+  });
+
+  // Ожидаем выполнения всех запросов
+  const resultsArray = await Promise.all(searchPromises);
+  
+  // Объединяем результаты в один массив
+  const combinedResults = resultsArray.flat();
+
+  // Удаление дубликатов
+  const uniqueResults = Array.from(new Set(combinedResults.map((dish) => dish.id))).map(
+    (id) => combinedResults.find((dish) => dish.id === id)
+  );
+
+  // Сортировка результатов по приоритету
+  const sortedResults = uniqueResults.sort((a, b) => {
+    const getPriority = (dish) => {
+      if (typeof dish.name === 'string' && dish.name.toLowerCase().startsWith(lowerCaseSearchString)) return 1;
+      if (typeof dish.categoryname === 'string' && dish.categoryname.toLowerCase().startsWith(lowerCaseSearchString)) return 2;
+      if (typeof dish.description === 'string' && dish.description.toLowerCase().startsWith(lowerCaseSearchString)) return 3;
+      if (typeof dish.name === 'string' && dish.name.toLowerCase().includes(lowerCaseSearchString)) return 4;
+      if (typeof dish.categoryname === 'string' && dish.categoryname.toLowerCase().includes(lowerCaseSearchString)) return 5;
+      if (typeof dish.description === 'string' && dish.description.toLowerCase().includes(lowerCaseSearchString)) return 6;
+      return 7;
+    };
+    return getPriority(a) - getPriority(b);
+  });
+
+  return sortedResults;
+};
 
 // const updateByMeasureId = async (id, dishData) => {
 //   if (!Array.isArray(dishData.measures)) {
@@ -298,9 +308,10 @@ const fetchDishById = async (id, mode) => {
 
 module.exports = {
   createByMeasureId,
-  // createByProductId,
+  createByProductId,
   fetchDishes,
   fetchDishById,
+  searchDishes,
   // updateByMeasureId,
   // updateByProductId,
   // deleteDish,

@@ -6,6 +6,7 @@ const {
   createMultipleByProductId, 
   fetchDishes, 
   fetchDishById, 
+  searchDishes,
   updateByMeasureId, 
   updateByProductId, 
   deleteDish 
@@ -42,7 +43,8 @@ const createDishByMeasureId = async (req, res) => {
 const getDishes = async (req, res) => {
   try {
     const mode = req.query.mode || 'full';
-    const dishes = await fetchDishes(mode);
+    const search = req.query.search;
+    let dishes = search ? await searchDishes(search, mode) : await fetchDishes(mode);
     res.status(200).json(dishes);
   } catch (error) {
     if (error instanceof Error) {
