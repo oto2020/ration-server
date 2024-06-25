@@ -91,61 +91,6 @@ const createByMeasureId = async (dishData) => {
       }
     },
   });
-//   // dishData.measures это массив объектов типа { measureId: 72, value: 2 }
-//   // нам нужно добраться до продукта через measureId
-//   // console.log(dishData);
-//   let measureIds = dishData.measures.map(m => m.measureId);
-//   let dishMeasures = await getMeasuresByIds(measureIds);
-
-// // console.log(dishMeasures);
-  
-//   // суммарные значения по блюду
-//   let weight = 0;   // общий вес блюда
-//   let totals = {};  // калькулируемые поля
-//   let calcFields = Object.keys(fields['full']);  // массив строк с наименованиями всех калькулируемых полей
-//   calcFields.forEach(field => { totals[field] = 0; });  // задаем 0 калькулируемым полям
-//   // console.log(totals);
-
-//   for(let i = 0; i < measureIds.length; i++) {
-//     let measureId = measureIds[i]; // id единицы измерения
-//     let measureCount = dishData.measures.find(m => m.measureId === measureId).value; // 2 яблока
-//     let measureWithProduct = dishMeasures.find(m => m.id === measureId); // единица измерения и продукт внутри
-//     let measureValue = measureWithProduct.value; // сколько весит одно яблоко
-//     let product = measureWithProduct.product; // продукт со всеми внутренностями 'fordish'
-//     let productWeight = measureCount * measureValue * 100; // вес продукта в граммах
-//     weight += productWeight;
-
-//     calcFields.forEach(field => {
-//       if (product[field] !== undefined) {
-//         totals[field] += (product[field] * productWeight) / 100;
-//       }
-//     });
-//   }
-
-//   // нормализуем, чтобы значения были на 100г продукта
-//   totals = Object.keys(totals).reduce((acc, key) => {
-//     acc[key] = totals[key] *100 / weight;
-//     return acc;
-//   }, {});
-
-//   console.log(totals);
-//   console.log(weight);
-
-//   return prisma.dish.create({
-//     data: {
-//       name: dishData.name,
-//       description: dishData.description,
-//       categoryname: dishData.categoryname,
-//       weight: weight,
-//       ...totals,
-//       measures: {
-//         create: dishData.measures.map(measure => ({
-//           measure: { connect: { id: measure.measureId } },
-//           value: measure.value,
-//         })),
-//       },
-//     },
-//   });
 };
 
 // // Вспомогательная функция получения единиц измерения по массиву id продукта
