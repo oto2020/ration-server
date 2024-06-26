@@ -7,6 +7,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Набор вычисляемых характеритстик по нутриентам, свойственных Продукту, Блюду, Рациону
 model NutritionFacts {
   id               Int      @id @default(autoincrement())
   kcal             Float    @default(0)
@@ -48,26 +49,26 @@ model NutritionFacts {
   manganese        Float?    @default(0)
   selenium         Float?    @default(0)
 
-  product  Product?
-  dish     Dish?
-  ration   Ration?
+  product  Product?     //  на него может ссылаться продукт
+  dish     Dish?        //  на него может ссылаться блюдо
+  // ration   Ration?   //  на него может ссылаться рацион
 
   @@map("nutrition_facts")
 }
 
 model Product {
-  id               Int      @id @default(autoincrement())
+  id               Int              @id @default(autoincrement())
+  nutritionFactsId Int              @unique   //  ссылается на калькулируемые нутриенты
   name             String
   subname          String?
   categoryname     String?
 
-  nutritionFacts   NutritionFacts   @relation(fields: [nutritionFactsId], references: [id])
-  nutritionFactsId Int              @unique
+  nutritionFacts   NutritionFacts     @relation(fields: [nutritionFactsId], references: [id])
 
-  wasteWeightValue Float   @default(1.0)
-  wasteWeightDesc  String  @default("Продукт в чистом виде")
-  isDeleted        Boolean @default(false)
-  measures         Measure[]
+  wasteWeightValue Float              @default(1.0)
+  wasteWeightDesc  String             @default("Продукт в чистом виде")
+  isDeleted        Boolean            @default(false)
+  productMeasures  ProductMeasure[]   //  Единицы измерения продукта: два яблока
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -76,68 +77,99 @@ model Product {
   @@map("products")
 }
 
-model Measure {
-  id          Int     @id @default(autoincrement())
-  productId   Int
-  name        String
-  value       Float
-  desc        String
-  product     Product @relation(fields: [productId], references: [id])
-  dishMeasures DishMeasure[]
+model ProductMeasure {
+  id                    Int                   @id @default(autoincrement())
+  productId             Int
+  name                  String
+  value                 Float
+  desc                  String
+  product               Product               @relation(fields: [productId], references: [id])
+  dishProductMeasures   DishProductMeasure[]  //  ед. изм. продукта используется при составлении блюда
 
-  @@map("measures")
+  @@map("product_measures")
+}
+
+model DishProductMeasure {
+  id                  Int             @id @default(autoincrement())
+  dishId              Int             //  связывает с блюдом
+  productMeasureId    Int             //  связывает с ед. изм. продукта
+  value               Float
+
+  dish                Dish            @relation(fields: [dishId], references: [id])
+  productMeasure      ProductMeasure  @relation(fields: [productMeasureId], references: [id])
+
+  @@map("dish_product_measures")
 }
 
 model Dish {
-  id              Int         @id @default(autoincrement())
-  name            String      @unique
-  categoryname    String?
-  description     String?
+  id                Int                   @id @default(autoincrement())
+  nutritionFactsId  Int                   @unique
+  name              String                @unique
+  categoryname      String?
+  description       String?
+  weight            Float?
+  isDeleted         Boolean               @default(false)
 
-  nutritionFactsId Int            @unique
-  nutritionFacts  NutritionFacts  @relation(fields: [nutritionFactsId], references: [id])
+  nutritionFacts            NutritionFacts        @relation(fields: [nutritionFactsId], references: [id])
+  dishProductMeasures       DishProductMeasure[]  //  Блюдо состоит из двух апельсинов
+  dishMeasures              DishMeasure[]         //  Единицы измерения блюда: большая порция, маленькая порция
+  // rationDishes    RationDish[]
 
-  weight          Float?
-  isDeleted       Boolean @default(false)
-  dishMeasures    DishMeasure[]
-  rationDishes    RationDish[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   @@map("dishes")
 }
 
 model DishMeasure {
-  id         Int      @id @default(autoincrement())
-  dishId     Int
-  measureId  Int
-  value      Float
-  dish       Dish     @relation(fields: [dishId], references: [id])
-  measure    Measure  @relation(fields: [measureId], references: [id])
+  id                    Int                   @id @default(autoincrement())
+  dishId                Int                   // ед. изм. блюда ссылается на блюдо
+  name                  String
+  value                 Float
+  desc                  String
+  dish                  Dish                  @relation(fields: [dishId], references: [id])
+  // dishProductMeasures   DishProductMeasure[]
 
   @@map("dish_measures")
 }
 
+model RationDishMeasure {
+  id                Int         @id @default(autoincrement())
+  rationId          Int     
+  dishMeausreId     Int
+  value             Float
+  mealType          MealType
+  
+  ration            Ration      @relation(fields: [rationId], references: [id])
+
+  @@map("ration_dish_measures")
+}
+model ProductDishMeasure {
+  id                  Int         @id @default(autoincrement())
+  rationId            Int
+  productMeausreId    Int
+  value               Float
+  mealType            MealType
+  
+  ration              Ration      @relation(fields: [rationId], references: [id])
+  
+  @@map("product_dish_measures")
+}
+
 model Ration {
-  id              Int             @id @default(autoincrement())
-  name            String       
-  description     String?
-  userId          Int             @default(1)
-  date            DateTime
-
-  nutritionFactsId Int            @unique
-  nutritionFacts  NutritionFacts  @relation(fields: [nutritionFactsId], references: [id])
-
-  isDeleted       Boolean         @default(false)
-  rationDishes    RationDish[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([name, description, date])
+  id                  Int       @id @default(autoincrement())
+  nutritionFactsId    Int
+  name                String
+  description         String
+  userId              Int       @default(1)
+  date                DateTime
+  isDeleted           Boolean   @default(false)
+  
+  rationDishMeasures    RationDishMeasure[]
+  productDishMeasures   ProductDishMeasure[]
   @@map("rations")
 }
+
 
 enum MealType {
   BREAKFAST
@@ -147,14 +179,36 @@ enum MealType {
   SUPPER
 }
 
-model RationDish {
-  id            Int         @id @default(autoincrement())
-  rationId      Int
-  dishId        Int
-  value         Float
-  mealType      MealType
-  ration        Ration      @relation(fields: [rationId], references: [id])
-  dish          Dish        @relation(fields: [dishId], references: [id])
+// model Ration {
+//   id              Int             @id @default(autoincrement())
+//   name            String       
+//   description     String?
+//   userId          Int             @default(1)
+//   date            DateTime
 
-  @@map("ration_dishes")
-}
+//   nutritionFactsId Int            @unique
+//   nutritionFacts  NutritionFacts  @relation(fields: [nutritionFactsId], references: [id])
+
+//   isDeleted       Boolean         @default(false)
+//   rationDishes    RationDish[]
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@unique([name, description, date])
+//   @@map("rations")
+// }
+
+
+
+// model RationDish {
+//   id            Int         @id @default(autoincrement())
+//   rationId      Int
+//   dishId        Int
+//   value         Float
+//   mealType      MealType
+//   ration        Ration      @relation(fields: [rationId], references: [id])
+//   dish          Dish        @relation(fields: [dishId], references: [id])
+
+//   @@map("ration_dishes")
+// }
