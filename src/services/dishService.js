@@ -6,7 +6,7 @@ const { fields } = require('./fields');
 const prisma = new PrismaClient();
 
 // Вспомогательная функция получения единиц измерения по id для measures и products
-async function getMeasureParts(dishData) {
+async function calculate(dishData) {
   let productMeasures = [];
   if (Array.isArray(dishData.measures)) {
     let productMeasureIds = dishData.measures.map(m => m.id);
@@ -30,7 +30,7 @@ async function getMeasureParts(dishData) {
       }
     });
     // дополним наш мега-объект полем count из входных данных measures
-    return productMeasures.map(productMeasure => {
+    productMeasures =  productMeasures.map(productMeasure => {
       let count = dishData.measures.filter(m => m.id === productMeasure.id)[0].count;
       return {
         productMeasureId: productMeasure.id, 
@@ -63,7 +63,7 @@ async function getMeasureParts(dishData) {
       }
     });
     // дополним наш мега-объект полем count из входных данных products
-    return productMeasures.map(productMeasure => {
+    productMeasures = productMeasures.map(productMeasure => {
       let count = dishData.products.filter(p => p.id === productMeasure.id)[0].count;
       return {
         productMeasureId: productMeasure.id, 
@@ -71,8 +71,25 @@ async function getMeasureParts(dishData) {
         count: count, 
         nutritionFacts: productMeasure.product.nutritionFacts
       }
-    })
+    });
   }
+
+  // Ипользуя искуственный массив объектов parts посчитаем общий вес и нутриенты
+  let nutritionFacts = {};  // пустой объект со всеми полями-нутриентами
+  let nutritionFactsKeys = Object.keys(fields['full']);
+  nutritionFactsKeys.forEach(key => nutritionFacts[key] = 0);
+  let weight = 0;
+  // имея все задействованные единицы измерения
+  productMeasures.forEach(part => {
+    weight += part.count * part.grams; // два банана * вес банана в граммах
+    nutritionFactsKeys.forEach(key => {
+      nutritionFacts[key] += part.count * part.grams * part.nutritionFacts[key]; // собираем суммарный набор параметров для блюда
+    })
+  });
+  // нормализуем под КБЖУ и другие нутриенты на 100 г
+  nutritionFactsKeys.forEach(key => nutritionFacts[key] /= weight);
+  // console.log(nutritionFacts, weight);
+  return {measures: productMeasures, nutritionFacts: nutritionFacts, weight: weight}
 }
 
 
@@ -83,51 +100,6 @@ const create = async (dishData) => {
   if (!(Array.isArray(dishData.measures) || Array.isArray(dishData.products))) {
     throw new Error("Нужно передать массив 'measures' или 'products' с id ед. изм. продукта и количеством [{id, count}, и т.д. ...]");
   }
-  // расширяем данными
-  let measureParts = await getMeasureParts(dishData);
-  // console.log(measureParts);
-
-  //console.log(parts);
-  // Ипользуя искуственный массив объектов parts посчитаем общий вес и нутриенты
-  let nutritionFacts = {};  // пустой объект со всеми полями-нутриентами
-  let nutritionFactsKeys = Object.keys(fields['full']);
-  nutritionFactsKeys.forEach(key => nutritionFacts[key] = 0);
-  let weight = 0;
-  // имея все задействованные единицы измерения
-  measureParts.forEach(part => {
-    weight += part.count * part.grams; // два банана * вес банана в граммах
-    nutritionFactsKeys.forEach(key => {
-      nutritionFacts[key] += part.count * part.grams * part.nutritionFacts[key]; // собираем суммарный набор параметров для блюда
-    })
-  });
-  // нормализуем под КБЖУ и другие нутриенты на 100 г
-  nutritionFactsKeys.forEach(key => nutritionFacts[key] /= weight);
-  // console.log(nutritionFacts, weight);
-
-  // создадим блюда
-  return prisma.dish.create({
-    data: {
-      name: dishData.name,
-      description: dishData.description || '',
-      categoryname: dishData.categoryname || '',
-      dishMeasures: {
-        create: dishData.dishMeasures
-      },
-      dishProductMeasureCounts: {
-        create: measureParts.map(part => ({
-          productMeasure: { connect: { id: part.productMeasureId } },
-          count: part.count,
-        })),
-      },
-      // вычисляемые поля
-      nutritionFacts: {
-        create: nutritionFacts
-      },
-      weight: weight
-    },
-  });
-
-
 
   // Отдельно по единицам измерения самого продукта - порциям:
   // Убедитесь, что dishMeasures существует и добавьте 'грамм', если его нет
@@ -140,7 +112,33 @@ const create = async (dishData) => {
     });
   }
 
-  
+  // получим measures, nutritionFacts и weigth
+  // measures могли не содержаться, если был передан products
+  let calculated = await calculate(dishData);
+
+  // создадим блюда
+  return prisma.dish.create({
+    data: {
+      name: dishData.name,
+      description: dishData.description || '',
+      categoryname: dishData.categoryname || '',
+      dishMeasures: {
+        create: dishData.dishMeasures
+      },
+      dishProductMeasureCounts: {
+        create: calculated.measures.map(m => ({
+          productMeasure: { connect: { id: m.productMeasureId } },
+          count: m.count,
+        })),
+      },
+      // вычисляемые поля
+      nutritionFacts: {
+        create: calculated.nutritionFacts
+      },
+      weight: calculated.weight
+    },
+  });
+
 };
 
 // получение всех блюд
