@@ -5,141 +5,157 @@ const { fields } = require('./fields');
 
 const prisma = new PrismaClient();
 
-// Вспомогательная функция получения единиц измерения по массиву id
-async function getMeasuresByIds(measureIds) {
-  return await prisma.measure.findMany({
-    include: {
-      product: {
-        select: fields['product']
-      }
-    },
-    where: {
-      id: {
-        in: measureIds
-      }
-    }
-  });
-}
-
-// Создание блюда с measureId
-const createByMeasureId = async (dishData) => {
-  console.log('.\n.\n.\n.\n.\n.\ncreateByMeasureId');
-  if (!Array.isArray(dishData.dishMeasures)) {
-    throw new Error("dishMeasures must be an array");
-  }
-  
-  // набор measureId берём на ходу
-  let measureIds = dishData.dishMeasures.map(dm => dm.measureId) 
-  // 1. научиться через measureId получать продукты и их nutrientFacts
-  let measures = await prisma.measure.findMany({
-    select: {
-      id: true,
-      name: true,
-      value: true,
-      product: {
-        include: {
-          nutritionFacts: {
-            select: {...fields['full']}
+// Вспомогательная функция получения единиц измерения по id для measures и products
+async function getMeasureParts(dishData) {
+  let productMeasures = [];
+  if (Array.isArray(dishData.measures)) {
+    let productMeasureIds = dishData.measures.map(m => m.id);
+    productMeasures = await prisma.productMeasure.findMany({
+      select: {
+        id: true,
+        name: true,
+        grams: true,
+        product: {
+          include: {
+            nutritionFacts: {
+              select: fields['full']
+            }
           }
         }
+      },
+      where: {
+        id: {
+          in: productMeasureIds
+        }
       }
-    },
-    where: {
-      id: {
-        in: measureIds
+    });
+    // дополним наш мега-объект полем count из входных данных measures
+    return productMeasures.map(productMeasure => {
+      let count = dishData.measures.filter(m => m.id === productMeasure.id)[0].count;
+      return {
+        productMeasureId: productMeasure.id, 
+        grams: productMeasure.grams, 
+        count: count, 
+        nutritionFacts: productMeasure.product.nutritionFacts
       }
-    }
-  });
-
-  console.log(measures);
-
-  let dishNutrientFacts = {}
-  dishNutrientFacts = fields['full'];
-  let dishNutrientFactsKeys = Object.keys(dishNutrientFacts);
-  dishNutrientFactsKeys.forEach(key => dishNutrientFacts[key] = 0);
-
-  let dishWeight = 0;
-  // имея все задействованные единицы измерения
-  measures.forEach(measure => {
-    // мы получали их по набору id, поэтому value приходится восстанавливать. зато запро с в БД одним запросом
-    let dishMeasureValue = dishData.dishMeasures.filter(dm=>dm.measureId === measure.id)[0].value; // сколько единиц измерения
-    let measureValue = measure.value; // сколько весит в граммах одна единица измерения продукта
-    dishWeight += dishMeasureValue * measureValue * 100; // собираем общий вес продукта
-    let productNutritionFacts = measure.product.nutritionFacts; // перечень значений нутриентов для этого продукта
-    dishNutrientFactsKeys.forEach(key => {
-      dishNutrientFacts[key] += dishMeasureValue * measureValue * productNutritionFacts[key]; // собираем суммарный набор параметров для блюда
+    });
+  }
+  if (Array.isArray(dishData.products)) {
+    let productIds = dishData.products.map(p => p.id);
+    productMeasures = await prisma.productMeasure.findMany({
+      select: {
+        id: true,
+        name: true,
+        grams: true,
+        product: {
+          include: {
+            nutritionFacts: {
+              select: fields['full']
+            }
+          }
+        }
+      },
+      where: {
+        id: {
+          in: productIds
+        },
+        name: 'грамм'
+      }
+    });
+    // дополним наш мега-объект полем count из входных данных products
+    return productMeasures.map(productMeasure => {
+      let count = dishData.products.filter(p => p.id === productMeasure.id)[0].count;
+      return {
+        productMeasureId: productMeasure.id, 
+        grams: productMeasure.grams, 
+        count: count, 
+        nutritionFacts: productMeasure.product.nutritionFacts
+      }
     })
-  })
-  // нормализуем под КБЖУ и другие нутриенты на 100 г
-  dishNutrientFactsKeys.forEach(key => {
-    dishNutrientFacts[key] /= (dishWeight / 100); 
-  })
-  console.log(dishNutrientFacts, dishWeight);
+  }
+}
 
+
+// Создание блюда с measureId
+const create = async (dishData) => {
+  console.log('.\n.\n.\n.\n.\n.\ncreateByMeasureId');
+
+  if (!(Array.isArray(dishData.measures) || Array.isArray(dishData.products))) {
+    throw new Error("Нужно передать массив 'measures' или 'products' с id ед. изм. продукта и количеством [{id, count}, и т.д. ...]");
+  }
+  // расширяем данными
+  let measureParts = await getMeasureParts(dishData);
+  // console.log(measureParts);
+
+  //console.log(parts);
+  // Ипользуя искуственный массив объектов parts посчитаем общий вес и нутриенты
+  let nutritionFacts = {};  // пустой объект со всеми полями-нутриентами
+  let nutritionFactsKeys = Object.keys(fields['full']);
+  nutritionFactsKeys.forEach(key => nutritionFacts[key] = 0);
+  let weight = 0;
+  // имея все задействованные единицы измерения
+  measureParts.forEach(part => {
+    weight += part.count * part.grams; // два банана * вес банана в граммах
+    nutritionFactsKeys.forEach(key => {
+      nutritionFacts[key] += part.count * part.grams * part.nutritionFacts[key]; // собираем суммарный набор параметров для блюда
+    })
+  });
+  // нормализуем под КБЖУ и другие нутриенты на 100 г
+  nutritionFactsKeys.forEach(key => nutritionFacts[key] /= weight);
+  // console.log(nutritionFacts, weight);
+
+  // создадим блюда
   return prisma.dish.create({
     data: {
       name: dishData.name,
       description: dishData.description || '',
       categoryname: dishData.categoryname || '',
-      weight: dishWeight,
       dishMeasures: {
-        create: dishData.dishMeasures.map(measure => ({
-          measure: { connect: { id: measure.measureId } },
-          value: measure.value,
+        create: dishData.dishMeasures
+      },
+      dishProductMeasureCounts: {
+        create: measureParts.map(part => ({
+          productMeasure: { connect: { id: part.productMeasureId } },
+          count: part.count,
         })),
       },
+      // вычисляемые поля
       nutritionFacts: {
-        create: dishNutrientFacts
-      }
+        create: nutritionFacts
+      },
+      weight: weight
     },
   });
-};
 
-// Создание блюда с measureId
-const createByProductId = async (dishData) => {
-  console.log('.\n.\n.\n.\n.\n.\ncreateByProductId');
-  if (!Array.isArray(dishData.products)) {
-    throw new Error("products must be an array");
-  }
-  
-  // основная задача заключается в том, чтобы для каждого продукта найти тот measure, который граммы
-  let productIds = dishData.products.map(product => product.productId);
-  let measures = await prisma.measure.findMany({
-    where: {
-      productId: {
-        in: productIds,
-      },
+
+
+  // Отдельно по единицам измерения самого продукта - порциям:
+  // Убедитесь, что dishMeasures существует и добавьте 'грамм', если его нет
+  dishData.dishMeasures = dishData.dishMeasures || [];
+  if (!dishData.dishMeasures.find((dishMeasure) => dishMeasure.name === 'грамм')) {
+    dishData.dishMeasures.push({
       name: 'грамм',
-    }
-  });
+      grams: 1,
+      desc: ''
+    });
+  }
 
-  // произвести восстановление привычного из предыдущей функции dishData.dishMeasures
-  dishData.dishMeasures = dishData.products.map(product => {
-    let measure = measures.filter(m=>m.productId === product.productId)[0];
-    return { measureId: measure.id, value: product.value };
-  })
-  // console.log(dishData.products)
-  // console.log(measures);
-  // console.log(dishData.dishMeasures);
-
-  // вызываем тот-же метод, блистательная хуцпа
-  return createByMeasureId(dishData);
+  
 };
-
 
 // получение всех блюд
-const fetchDishes = async (mode) => {
+const fetch = async (mode) => {
   return prisma.dish.findMany({
     select: {
       ...fields['dishDefault'],
-      dishMeasures: {
+      dishProductMeasureCounts: {
         include: {
-          measure: {
+          productMeasure: {
             include: {
               product: {
                 include: {
                   nutritionFacts: {
-                    select: {...fields[mode]}
+                    select: {...(fields[mode] || fields['full'])}
                   }
                 }
               }
@@ -148,7 +164,7 @@ const fetchDishes = async (mode) => {
         }
       },
       nutritionFacts: {
-        select: {...fields[mode]}
+        select: {...(fields[mode] || fields['full'])}
       }
     }
   });
@@ -156,18 +172,18 @@ const fetchDishes = async (mode) => {
 
 
 // получение блюда по Id
-const fetchDishById = async (id, mode) => {
+const fetchById = async (id, mode) => {
   return prisma.dish.findUnique({
     select: {
       ...fields['dishDefault'],
-      dishMeasures: {
+      dishProductMeasureCounts: {
         include: {
-          measure: {
+          productMeasure: {
             include: {
               product: {
                 include: {
                   nutritionFacts: {
-                    select: {...fields[mode]}
+                    select: {...(fields[mode] || fields['full'])}
                   }
                 }
               }
@@ -176,7 +192,7 @@ const fetchDishById = async (id, mode) => {
         }
       },
       nutritionFacts: {
-        select: {...fields[mode]}
+        select: {...(fields[mode] || fields['full'])}
       }
     },
     where: {
@@ -186,7 +202,7 @@ const fetchDishById = async (id, mode) => {
 };
 
 
-const searchDishes = async (searchString, mode) => {
+const search = async (searchString, mode) => {
   const lowerCaseSearchString = searchString.toLowerCase();
   const searchWords = lowerCaseSearchString.split(/\s+/); // Разбиваем строку на слова
 
@@ -194,9 +210,9 @@ const searchDishes = async (searchString, mode) => {
   const searchPromises = searchWords.map(async (word) => {
     return await prisma.dish.findMany({
       select: {
-        ...fields['dishDefault'],
+        ...fields['dishSearch'],
         nutritionFacts: {
-          select: { ...fields[mode] },
+          select: {...(fields[mode] || fields['full'])},
         },
       },
       where: {
@@ -254,7 +270,7 @@ const searchDishes = async (searchString, mode) => {
 //         deleteMany: {},
 //         create: dishData.measures.map(measure => ({
 //           measure: { connect: { id: measure.measureId } },
-//           value: measure.value,
+//           grams: measure.grams,
 //         })),
 //       },
 //     },
@@ -280,7 +296,7 @@ const searchDishes = async (searchString, mode) => {
 
 //     return {
 //       measureId: gramMeasure.id,
-//       value: product.value
+//       grams: product.grams
 //     };
 //   }));
 
@@ -293,7 +309,7 @@ const searchDishes = async (searchString, mode) => {
 //         deleteMany: {},
 //         create: measuresWithGram.map(measure => ({
 //           measure: { connect: { id: measure.measureId } },
-//           value: measure.value,
+//           grams: measure.grams,
 //         })),
 //       },
 //     },
@@ -307,11 +323,10 @@ const searchDishes = async (searchString, mode) => {
 // };
 
 module.exports = {
-  createByMeasureId,
-  createByProductId,
-  fetchDishes,
-  fetchDishById,
-  searchDishes,
+  create,
+  fetch,
+  fetchById,
+  search,
   // updateByMeasureId,
   // updateByProductId,
   // deleteDish,

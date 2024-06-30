@@ -77,23 +77,25 @@ model Product {
   @@map("products")
 }
 
+// Единица измерения продукта, например: один банан (шт.)
 model ProductMeasure {
-  id                    Int                   @id @default(autoincrement())
-  productId             Int
-  name                  String
-  value                 Float
-  desc                  String
-  product               Product               @relation(fields: [productId], references: [id])
-  dishProductMeasures   DishProductMeasure[]  //  ед. изм. продукта используется при составлении блюда
+  id                        Int                       @id @default(autoincrement())
+  productId                 Int
+  name                      String
+  grams                     Float
+  desc                      String
+  product                   Product                   @relation(fields: [productId], references: [id])
+  dishProductMeasureCounts  DishProductMeasureCount[]  //  ед. изм. продукта используется при составлении блюда
 
   @@map("product_measures")
 }
 
-model DishProductMeasure {
+// Сколько ед. изм. (например: бананов) в блюде
+model DishProductMeasureCount {
   id                  Int             @id @default(autoincrement())
   dishId              Int             //  связывает с блюдом
   productMeasureId    Int             //  связывает с ед. изм. продукта
-  value               Float
+  count               Float
 
   dish                Dish            @relation(fields: [dishId], references: [id])
   productMeasure      ProductMeasure  @relation(fields: [productMeasureId], references: [id])
@@ -101,6 +103,7 @@ model DishProductMeasure {
   @@map("dish_product_measures")
 }
 
+// Блюдо
 model Dish {
   id                Int                   @id @default(autoincrement())
   nutritionFactsId  Int                   @unique
@@ -110,9 +113,9 @@ model Dish {
   weight            Float?
   isDeleted         Boolean               @default(false)
 
-  nutritionFacts            NutritionFacts        @relation(fields: [nutritionFactsId], references: [id])
-  dishProductMeasures       DishProductMeasure[]  //  Блюдо состоит из двух апельсинов
-  dishMeasures              DishMeasure[]         //  Единицы измерения блюда: большая порция, маленькая порция
+  nutritionFacts                NutritionFacts              @relation(fields: [nutritionFactsId], references: [id])
+  dishProductMeasureCounts      DishProductMeasureCount[]   //  Блюдо состоит из двух апельсинов
+  dishMeasures                  DishMeasure[]               //  Единицы измерения блюда: большая порция, маленькая порция
   // rationDishes    RationDish[]
 
   createdAt       DateTime              @default(now())
@@ -125,35 +128,34 @@ model DishMeasure {
   id                    Int                   @id @default(autoincrement())
   dishId                Int                   // ед. изм. блюда ссылается на блюдо
   name                  String
-  value                 Float
+  grams                 Float
   desc                  String
   dish                  Dish                  @relation(fields: [dishId], references: [id])
-  // dishProductMeasures   DishProductMeasure[]
 
   @@map("dish_measures")
 }
 
-model RationDishMeasure {
+model RationDishMeasureCount {
   id                Int         @id @default(autoincrement())
   rationId          Int     
   dishMeausreId     Int
-  value             Float
+  count             Float
   mealType          MealType
   
   ration            Ration      @relation(fields: [rationId], references: [id])
 
-  @@map("ration_dish_measures")
+  @@map("ration_dish_measure_counts")
 }
-model ProductDishMeasure {
+model ProductDishMeasureCount {
   id                  Int         @id @default(autoincrement())
   rationId            Int
   productMeausreId    Int
-  value               Float
+  count               Float
   mealType            MealType
   
   ration              Ration      @relation(fields: [rationId], references: [id])
   
-  @@map("product_dish_measures")
+  @@map("product_dish_measure_counts")
 }
 
 model Ration {
@@ -165,8 +167,8 @@ model Ration {
   date                DateTime
   isDeleted           Boolean   @default(false)
   
-  rationDishMeasures    RationDishMeasure[]
-  productDishMeasures   ProductDishMeasure[]
+  rationDishMeasureCounts    RationDishMeasureCount[]
+  productDishMeasureCounts   ProductDishMeasureCount[]
   @@map("rations")
 }
 
@@ -205,7 +207,7 @@ enum MealType {
 //   id            Int         @id @default(autoincrement())
 //   rationId      Int
 //   dishId        Int
-//   value         Float
+//   grams         Float
 //   mealType      MealType
 //   ration        Ration      @relation(fields: [rationId], references: [id])
 //   dish          Dish        @relation(fields: [dishId], references: [id])

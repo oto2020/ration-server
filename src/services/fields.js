@@ -13,7 +13,15 @@ const fields = {
     wasteWeightValue: true,
     wasteWeightDesc: true,
     isDeleted: true,
-    measures: true,
+    productMeasures: true,
+  },
+  // Поля для поиска, самый минимум
+  productSearch: {
+    id: true,
+    name: true,
+    subname: true,
+    categoryname: true,
+    isDeleted: true,
   },
   // Поля по умолчанию для блюда
   dishDefault: {
@@ -24,10 +32,22 @@ const fields = {
     weight: true,
     isDeleted: true,
     dishMeasures: true,
+    dishProductMeasureCounts: true,
+  },  
+  dishSearch: {
+    id: true,
+    name: true,
+    description: true,
+    categoryname: true,
+    isDeleted: true
   },
 
   // Используемые поля
-  title: {
+  kbgu: {    
+    kcal: true,
+    mainFats: true,
+    mainProteins: true,
+    mainCarb: true,
   },
   main: {
     kcal: true,

@@ -82,7 +82,7 @@ const seedDatabase = async () => {
                     productMeasures: {
                         create: productMeasures.map(measure => ({
                             name: measure.name,
-                            value: measure.value,
+                            grams: measure.grams,
                             desc: measure.desc
                         }))
                     }
