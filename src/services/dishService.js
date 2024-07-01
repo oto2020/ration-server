@@ -95,8 +95,7 @@ async function calculate(dishData) {
 
 // Создание блюда с measureId
 const create = async (dishData) => {
-  console.log('.\n.\n.\n.\n.\n.\ncreateByMeasureId');
-
+  
   if (!(Array.isArray(dishData.measures) || Array.isArray(dishData.products))) {
     throw new Error("Нужно передать массив 'measures' или 'products' с id ед. изм. продукта и количеством [{id, count}, и т.д. ...]");
   }

@@ -9,22 +9,22 @@ generator client {
 
 // Набор вычисляемых характеритстик по нутриентам, свойственных Продукту, Блюду, Рациону
 model NutritionFacts {
-  id               Int      @id @default(autoincrement())
-  kcal             Float    @default(0)
-  mainFats         Float    @default(0)
-  mainProteins     Float    @default(0)
-  mainCarb         Float    @default(0)
-  mainWater        Float    @default(0)
-  mainAsh          Float    @default(0)
-  subSugar         Float?    @default(0)
-  subFiber         Float?    @default(0)
-  subStarch        Float?    @default(0)
-  subTransfats     Float?    @default(0)
-  vitamin_a        Float?    @default(0)
-  beta_carotene    Float?    @default(0)
-  alpha_carotene   Float?    @default(0)
-  vitamin_e        Float?    @default(0)
-  vitamin_k        Float?    @default(0)
+  id               Int        @id @default(autoincrement())
+  kcal             Float      @default(0)
+  mainFats         Float      @default(0)
+  mainProteins     Float      @default(0)
+  mainCarb         Float      @default(0)
+  mainWater        Float      @default(0)
+  mainAsh          Float      @default(0)
+  subSugar         Float?     @default(0)
+  subFiber         Float?     @default(0)
+  subStarch        Float?     @default(0)
+  subTransfats     Float?     @default(0)
+  vitamin_a        Float?     @default(0)
+  beta_carotene    Float?     @default(0)
+  alpha_carotene   Float?     @default(0)
+  vitamin_e        Float?     @default(0)
+  vitamin_k        Float?     @default(0)
   vitamin_c        Float?    @default(0)
   vitamin_b1       Float?    @default(0)
   vitamin_b3       Float?    @default(0)
@@ -49,9 +49,9 @@ model NutritionFacts {
   manganese        Float?    @default(0)
   selenium         Float?    @default(0)
 
-  product  Product?     //  на него может ссылаться продукт
-  dish     Dish?        //  на него может ссылаться блюдо
-  // ration   Ration?   //  на него может ссылаться рацион
+  product   Product?      //  на него может ссылаться продукт
+  dish      Dish?         //  на него может ссылаться блюдо
+  menu      Menu?         //  на него может ссылаться меню
 
   @@map("nutrition_facts")
 }
@@ -86,7 +86,7 @@ model ProductMeasure {
   desc                      String
   product                   Product                   @relation(fields: [productId], references: [id])
   dishProductMeasureCounts  DishProductMeasureCount[]  //  ед. изм. продукта используется при составлении блюда
-  dRationProductMeasureCounts  DRationProductMeasureCount[]  //  ед. изм. продукта может использоваться при составлении рациона
+  menuProductMeasureCounts  MenuProductMeasureCount[]  //  ед. изм. продукта может использоваться при составлении рациона
 
   @@map("product_measures")
 }
@@ -117,7 +117,6 @@ model Dish {
   nutritionFacts                NutritionFacts              @relation(fields: [nutritionFactsId], references: [id])
   dishProductMeasureCounts      DishProductMeasureCount[]   //  Блюдо состоит из двух апельсинов
   dishMeasures                  DishMeasure[]               //  Единицы измерения блюда: большая порция, маленькая порция
-  // rationDishes    RationDish[]
 
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
@@ -133,57 +132,51 @@ model DishMeasure {
   desc                  String
   dish                  Dish                  @relation(fields: [dishId], references: [id])
 
-  dRationDishMeasureCounts DRationDishMeasureCount[]//  ед. изм. блюда используется при составлении рациона
+  menuDishMeasureCounts MenuDishMeasureCount[]//  ед. изм. блюда используется при составлении рациона
 
   @@map("dish_measures")
 }
 
 // Сколько в рационе на день содержится ед. изм. блюд
-model DRationDishMeasureCount {
+model MenuDishMeasureCount {
   id                Int         @id @default(autoincrement())
-  dRationId         Int     
+  menuId            Int     
   dishMeasureId     Int
   count             Float
-  mealType          MealType
+  mealNumber        Int
   
-  dRation           DRation       @relation(fields: [dRationId], references: [id])
+  menu              Menu          @relation(fields: [menuId], references: [id])
   dishMeasure       DishMeasure   @relation(fields: [dishMeasureId], references: [id])
 
-  @@map("dration_dish_measure_counts")
+  @@map("menu_dish_measure_counts")
 }
 
 // сколько в дневном рационе содержится ед. изм. продуктов
-model DRationProductMeasureCount {
+model MenuProductMeasureCount {
   id                  Int             @id @default(autoincrement())
-  dRationId           Int
+  menuId              Int
   productMeasureId    Int
   count               Float
-  mealType            MealType
+  mealNumber          Int
   
-  dRation             DRation           @relation(fields: [dRationId], references: [id])
-  productMeasure      ProductMeasure    @relation(fields: [productMeasureId], references: [id])
+  menu                Menu            @relation(fields: [menuId], references: [id])
+  productMeasure      ProductMeasure  @relation(fields: [productMeasureId], references: [id])
   
-  @@map("dration_product_measure_counts")
+  @@map("menu_product_measure_counts")
 }
 
 // Рацион на день для пользователя на дату
-model DRation {
+model Menu {
   id                  Int       @id @default(autoincrement())
-  nutritionFactsId    Int
-  userId              Int       @default(1)
-  date                DateTime?
+  nutritionFactsId    Int       @unique
+  name                String
+  description         String
   isDeleted           Boolean   @default(false)
   
-  dRationDishMeasureCounts      DRationDishMeasureCount[]
-  dRationProductMeasureCounts   DRationProductMeasureCount[]
-  @@map("d_rations")
+  nutritionFacts             NutritionFacts               @relation(fields: [nutritionFactsId], references: [id])
+  menuDishMeasureCounts      MenuDishMeasureCount[]       // dishes
+  menuProductMeasureCounts   MenuProductMeasureCount[]    // products
+  @@map("menus")
 }
 
 
-enum MealType {
-  BREAKFAST
-  LUNCH
-  DINNER
-  SNACK
-  SUPPER
-}
