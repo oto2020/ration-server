@@ -172,6 +172,7 @@ model Menu {
   name                String
   description         String
   isDeleted           Boolean   @default(false)
+  weight              Float?
   
   nutritionFacts             NutritionFacts               @relation(fields: [nutritionFactsId], references: [id])
   menuDishMeasureCounts      MenuDishMeasureCount[]       // dishes
