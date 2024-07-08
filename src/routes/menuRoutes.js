@@ -4,7 +4,7 @@ const { Router } = require('express');
 const { 
     create,
     // fetch, 
-    // fetchById, 
+    fetchById, 
     // search
   } = require('../services/menuService');
 
@@ -39,27 +39,27 @@ router.post('/', async (req, res) => {
 //             res.status(500).json({ error: 'An unknown error occurred' });
 //         }
 //     }
-//     });
+// });
 
-// // fetchById
-// router.get('/:id', async (req, res) => {
-//     try {
-//         const mode = req.query.mode || 'full';
-//         const { id } = req.params;
-//         const dish = await fetchById(Number(id), mode);
-//         if (dish) {
-//             res.status(200).json(dish);
-//         } else {
-//             res.status(404).json({ error: 'Dish not found' });
-//         }
-//     } catch (error) {
-//         if (error instanceof Error) {
-//             res.status(500).json({ error: error.message });
-//         } else {
-//             res.status(500).json({ error: 'An unknown error occurred' });
-//         }
-//     }
-//     });
+// fetchById
+router.get('/:id', async (req, res) => {
+    try {
+        const mode = req.query.mode || 'full';
+        const { id } = req.params;
+        const menu = await fetchById(Number(id), mode);
+        if (menu) {
+            res.status(200).json(menu);
+        } else {
+            res.status(404).json({ error: 'Menu not found' });
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            res.status(500).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'An unknown error occurred' });
+        }
+    }
+    });
 
 module.exports = router;
 

@@ -41,7 +41,14 @@ const fields = {
     categoryname: true,
     isDeleted: true
   },
-
+  // Поля по умолчанию для МЕНЮ
+  menuDefault: {
+    id: true,
+    name: true,
+    description: true,
+    weight: true,
+    isDeleted: true,
+  },  
   // Используемые поля
   kbgu: {    
     kcal: true,

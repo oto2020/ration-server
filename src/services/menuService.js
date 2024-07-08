@@ -150,12 +150,40 @@ const create = async (menuData) => {
 
 };
 
-// получение всех блюд
-const fetch = async (mode) => {
-  return prisma.dish.findMany({
+// // получение всех блюд
+// const fetch = async (mode) => {
+//   return prisma.dish.findMany({
+//     select: {
+//       ...fields['dishDefault'],
+//       dishProductMeasureCounts: {
+//         include: {
+//           productMeasure: {
+//             include: {
+//               product: {
+//                 include: {
+//                   nutritionFacts: {
+//                     select: {...(fields[mode] || fields['full'])}
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       },
+//       nutritionFacts: {
+//         select: {...(fields[mode] || fields['full'])}
+//       }
+//     }
+//   });
+// };
+
+
+// получение меню по Id
+const fetchById = async (id, mode) => {
+  return prisma.menu.findUnique({
     select: {
-      ...fields['dishDefault'],
-      dishProductMeasureCounts: {
+      ...fields['menuDefault'],
+      menuProductMeasureCounts: {
         include: {
           productMeasure: {
             include: {
@@ -170,24 +198,11 @@ const fetch = async (mode) => {
           }
         }
       },
-      nutritionFacts: {
-        select: {...(fields[mode] || fields['full'])}
-      }
-    }
-  });
-};
-
-
-// получение блюда по Id
-const fetchById = async (id, mode) => {
-  return prisma.dish.findUnique({
-    select: {
-      ...fields['dishDefault'],
-      dishProductMeasureCounts: {
+      menuDishMeasureCounts: {
         include: {
-          productMeasure: {
+          dishMeasure: {
             include: {
-              product: {
+              dish: {
                 include: {
                   nutritionFacts: {
                     select: {...(fields[mode] || fields['full'])}
@@ -209,131 +224,66 @@ const fetchById = async (id, mode) => {
 };
 
 
-const search = async (searchString, mode) => {
-  const lowerCaseSearchString = searchString.toLowerCase();
-  const searchWords = lowerCaseSearchString.split(/\s+/); // Разбиваем строку на слова
+// const search = async (searchString, mode) => {
+//   const lowerCaseSearchString = searchString.toLowerCase();
+//   const searchWords = lowerCaseSearchString.split(/\s+/); // Разбиваем строку на слова
 
-  // Выполняем запрос для каждого слова и объединяем результаты
-  const searchPromises = searchWords.map(async (word) => {
-    return await prisma.dish.findMany({
-      select: {
-        ...fields['dishSearch'],
-        nutritionFacts: {
-          select: {...(fields[mode] || fields['full'])},
-        },
-      },
-      where: {
-        OR: [
-          { name: { startsWith: word } },
-          { categoryname: { startsWith: word } },
-          { description: { startsWith: word } },
-          { name: { contains: word } },
-          { categoryname: { contains: word } },
-          { description: { contains: word } },
-        ],
-      },
-    });
-  });
-
-  // Ожидаем выполнения всех запросов
-  const resultsArray = await Promise.all(searchPromises);
-  
-  // Объединяем результаты в один массив
-  const combinedResults = resultsArray.flat();
-
-  // Удаление дубликатов
-  const uniqueResults = Array.from(new Set(combinedResults.map((dish) => dish.id))).map(
-    (id) => combinedResults.find((dish) => dish.id === id)
-  );
-
-  // Сортировка результатов по приоритету
-  const sortedResults = uniqueResults.sort((a, b) => {
-    const getPriority = (dish) => {
-      if (typeof dish.name === 'string' && dish.name.toLowerCase().startsWith(lowerCaseSearchString)) return 1;
-      if (typeof dish.categoryname === 'string' && dish.categoryname.toLowerCase().startsWith(lowerCaseSearchString)) return 2;
-      if (typeof dish.description === 'string' && dish.description.toLowerCase().startsWith(lowerCaseSearchString)) return 3;
-      if (typeof dish.name === 'string' && dish.name.toLowerCase().includes(lowerCaseSearchString)) return 4;
-      if (typeof dish.categoryname === 'string' && dish.categoryname.toLowerCase().includes(lowerCaseSearchString)) return 5;
-      if (typeof dish.description === 'string' && dish.description.toLowerCase().includes(lowerCaseSearchString)) return 6;
-      return 7;
-    };
-    return getPriority(a) - getPriority(b);
-  });
-
-  return sortedResults;
-};
-
-// const updateByMeasureId = async (id, dishData) => {
-//   if (!Array.isArray(dishData.measures)) {
-//     throw new Error("measures must be an array");
-//   }
-
-//   return prisma.dish.update({
-//     where: { id },
-//     data: {
-//       name: dishData.name,
-//       description: dishData.description,
-//       measures: {
-//         deleteMany: {},
-//         create: dishData.measures.map(measure => ({
-//           measure: { connect: { id: measure.measureId } },
-//           grams: measure.grams,
-//         })),
+//   // Выполняем запрос для каждого слова и объединяем результаты
+//   const searchPromises = searchWords.map(async (word) => {
+//     return await prisma.dish.findMany({
+//       select: {
+//         ...fields['dishSearch'],
+//         nutritionFacts: {
+//           select: {...(fields[mode] || fields['full'])},
+//         },
 //       },
-//     },
-//   });
-// };
-
-// const updateByProductId = async (id, dishData) => {
-//   if (!Array.isArray(dishData.products)) {
-//     throw new Error("measures must be an array");
-//   }
-
-//   const measuresWithGram = await Promise.all(dishData.products.map(async (product) => {
-//     const gramMeasure = await prisma.measure.findFirst({
 //       where: {
-//         productId: product.productId,
-//         name: 'грамм'
-//       }
-//     });
-
-//     if (!gramMeasure) {
-//       throw new Error(`Measure with name 'грамм' not found for productId ${product.productId}`);
-//     }
-
-//     return {
-//       measureId: gramMeasure.id,
-//       grams: product.grams
-//     };
-//   }));
-
-//   return prisma.dish.update({
-//     where: { id },
-//     data: {
-//       name: dishData.name,
-//       description: dishData.description,
-//       measures: {
-//         deleteMany: {},
-//         create: measuresWithGram.map(measure => ({
-//           measure: { connect: { id: measure.measureId } },
-//           grams: measure.grams,
-//         })),
+//         OR: [
+//           { name: { startsWith: word } },
+//           { categoryname: { startsWith: word } },
+//           { description: { startsWith: word } },
+//           { name: { contains: word } },
+//           { categoryname: { contains: word } },
+//           { description: { contains: word } },
+//         ],
 //       },
-//     },
+//     });
 //   });
+
+//   // Ожидаем выполнения всех запросов
+//   const resultsArray = await Promise.all(searchPromises);
+  
+//   // Объединяем результаты в один массив
+//   const combinedResults = resultsArray.flat();
+
+//   // Удаление дубликатов
+//   const uniqueResults = Array.from(new Set(combinedResults.map((dish) => dish.id))).map(
+//     (id) => combinedResults.find((dish) => dish.id === id)
+//   );
+
+//   // Сортировка результатов по приоритету
+//   const sortedResults = uniqueResults.sort((a, b) => {
+//     const getPriority = (dish) => {
+//       if (typeof dish.name === 'string' && dish.name.toLowerCase().startsWith(lowerCaseSearchString)) return 1;
+//       if (typeof dish.categoryname === 'string' && dish.categoryname.toLowerCase().startsWith(lowerCaseSearchString)) return 2;
+//       if (typeof dish.description === 'string' && dish.description.toLowerCase().startsWith(lowerCaseSearchString)) return 3;
+//       if (typeof dish.name === 'string' && dish.name.toLowerCase().includes(lowerCaseSearchString)) return 4;
+//       if (typeof dish.categoryname === 'string' && dish.categoryname.toLowerCase().includes(lowerCaseSearchString)) return 5;
+//       if (typeof dish.description === 'string' && dish.description.toLowerCase().includes(lowerCaseSearchString)) return 6;
+//       return 7;
+//     };
+//     return getPriority(a) - getPriority(b);
+//   });
+
+//   return sortedResults;
 // };
 
-// const deleteDish = async (id) => {
-//   return prisma.dish.delete({
-//     where: { id },
-//   });
-// };
 
 module.exports = {
   create,
-  fetch,
+  // fetch,
   fetchById,
-  search,
+  // search,
   // updateByMeasureId,
   // updateByProductId,
   // deleteDish,
